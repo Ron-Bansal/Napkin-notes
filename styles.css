@@ -21,8 +21,9 @@
   --focus-border-color: #4dad757a;
   --hr-color: #4d4f5c;
   --bold-color: #4dad75;
-  --highlight-bg-color: #67ba6f;
-  --highlight-text-color: #a4d7ba;
+  --highlight-bg-color: #bfdbcb;
+  /* --highlight-text-color: #67ba6f; */
+  --highlight-text-color: #3b8e5e;
   --modal-bg-color: #343d3f;
   --modal-keyboard-btn-text: #4dad75cf;
   --modal-keyboard-btn-bg: #2e383a;
@@ -40,10 +41,10 @@ body.light-mode {
   /* --bold-color: #67ba6f; */
   /* --border-color: #2f3039; */
   --bold-color: #4dad75;
-  --highlight-bg-color: #67ba6f;
-  --highlight-text-color: #D1E2CF;
+  --highlight-bg-color: #D1E2CF;
+  --highlight-text-color: #4dad75;
   --modal-bg-color: #FDFDFD;
-  --modal-keyboard-btn-text: #4dad75cf;
+  --modal-keyboard-btn-text: #4dad75;
   --modal-keyboard-btn-bg: #D1E2CF;
   --modal-keyboard-btn-border: #4dad75;
   --box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
@@ -63,26 +64,41 @@ body {
   /* height: 2rem; */
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 13px;
+  /* margin-bottom: 13px; */
   gap: 11px;
 }
 
 .logo-wrapper {
   display: flex;
-  height: 2rem;
+  height: 3rem;
   align-items: center;
+  margin-left: 2px;
   margin-bottom: 13px;
   gap: 11px;
 }
 
 .logo-wrapper > img {
   height: 1.8rem;
+  height: 2.8rem;
+  height: 2.6rem;
 }
 
-.logo-wrapper > h2 {
-  height: 1.3rem;
-  font-weight: 100;
-  color: var(--link-color);
+.logo-header-wrapper > h2 {
+  height: 17px;
+  font-weight: 500 !important;
+  letter-spacing: -1px !important;
+  color: var(--bold-color);
+  margin-bottom: 13px;
+}
+
+.logo-header-wrapper > p {
+  height: 1.2rem;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  color: var(--bold-color);
+}
+.thin {
+  font-weight: 270 !important;
 }
 
 #help-button {
@@ -93,6 +109,7 @@ body {
   font-size: 1.2rem;
   border-radius: 50%;
   border-color: var(--border-color);
+  align-self: flex-start;
 }
 
 #editor {
@@ -135,6 +152,24 @@ b {
   color: var(--bold-color);
 }
 
+i {
+  color: var(--highlight-text-color);
+  background-color: var(--highlight-bg-color);
+}
+
+mark {
+  color: var(--highlight-text-color);
+  background-color: var(--highlight-bg-color);
+  display: block;
+  padding: 2px 8px;
+  padding-bottom: 1px;
+  margin-top: 1.2rem;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
 footer {
   text-align: right;
   color: var(--text-color) 9c;
@@ -143,7 +178,7 @@ footer {
 }
 
 .modal {
-  /* display: none; */
+  display: none;
   position: fixed;
   z-index: 1;
   right: 10px;
@@ -177,6 +212,21 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.new-feature-badge::after {
+  content: "NEW";
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--modal-keyboard-btn-text);
+  background-color: var(--modal-keyboard-btn-bg);
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 0.3px solid var(--modal-keyboard-btn-border);
+  min-width: 25px;
+  text-align: center;
+  margin-left: 5px;
+  margin-bottom: 5px;
 }
 
 .shortcut-row {

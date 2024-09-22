@@ -23,9 +23,9 @@
     <div class="top-banner">
       <div class="logo-wrapper">
         <img src="/icon48-3.png" alt="Napkin Notes logo" />
-        <div>
+        <div class="logo-header-wrapper">
           <h2>Napkin Notes</h2>
-          <p>canvas for thought</p>
+          <p class="thin">canvas for thought</p>
         </div>
       </div>
 
@@ -66,14 +66,24 @@
             </div>
           </div>
           <div class="shortcut-row">
-            <p>Bold and font color</p>
+            <p class="new-feature-badge">Insert section title</p>
             <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Ctrl</span>
-              <span class="shortcut-key">X</span>
+              <span
+                class="shortcut-key"
+                style="font-size: 1rem; letter-spacing: 1px"
+                >///</span
+              >
             </div>
           </div>
           <div class="shortcut-row">
-            <p>Italics and highlight (soon)</p>
+            <p>Bold and color text</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">B</span>
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p class="new-feature-badge">Italics and highlight</p>
             <div class="shortcut-keys-wrapper">
               <span class="shortcut-key">Ctrl</span>
               <span class="shortcut-key">I</span>
@@ -109,11 +119,22 @@
             <input
               type="range"
               id="font-size-slider"
-              min="12"
+              min="10"
               max="24"
               value="16"
             />
             <span id="font-size-value">16px</span>
+          </div>
+          <h5>Line height:</h5>
+          <div class="line-height-wrapper">
+            <input
+              type="range"
+              id="line-height-slider"
+              min="10"
+              max="30"
+              value="18"
+            />
+            <span id="line-height-value">16px</span>
           </div>
         </div>
         <h5>Options:</h5>
