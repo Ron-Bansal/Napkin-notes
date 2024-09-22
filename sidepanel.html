@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Napkin Notes</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- <div class="angled-note-container inverted-radius-left">
+      <div class="note-header">
+        <h1>Napkin Notes</h1>
+        <p class="subtext">canvas for thought</p>
+        <span class="note-time">11:24 AM</span>
+      </div>
+      <div class="note-content">
+        <p><strong>Wow so bold and pronounced</strong></p>
+        <p>Hello this is a note</p>
+        <p>Hello <em>this</em> is a <strong>bold</strong> note</p>
+      </div>
+    </div> -->
+
+    <div class="top-banner">
+      <div class="logo-wrapper">
+        <img src="/icon48-3.png" alt="Napkin Notes logo" />
+        <div>
+          <h2>Napkin Notes</h2>
+          <p>canvas for thought</p>
+        </div>
+      </div>
+
+      <button id="help-button">?</button>
+    </div>
+    <div id="editor" contenteditable="true"></div>
+
+    <!-- <footer>
+      <p>autosaved</p>
+    </footer> -->
+
+    <div id="modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <div class="modal-header">
+          <h3>Napkin</h3>
+          <h3>| side panel notes</h3>
+        </div>
+        <p>Capture fleeting ideas and notes with a single click (Alt + X)</p>
+        <hr />
+        <h4>Shortcuts and Markdown</h4>
+        <div class="shortcuts-wrapper">
+          <div class="shortcut-row">
+            <p>Open side panel</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Alt</span>
+              <span class="shortcut-key">X</span>
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p>Insert section divider</p>
+            <div class="shortcut-keys-wrapper">
+              <span
+                class="shortcut-key"
+                style="font-size: 1rem; letter-spacing: 1px"
+                >---</span
+              >
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p>Bold and font color</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">X</span>
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p>Italics and highlight (soon)</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">I</span>
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p>Underline</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">U</span>
+            </div>
+          </div>
+          <div class="shortcut-row">
+            <p>Strikethrough</p>
+            <div class="shortcut-keys-wrapper">
+              <span class="shortcut-key">Ctrl</span>
+              <span class="shortcut-key">Shift</span>
+              <span class="shortcut-key">S</span>
+            </div>
+          </div>
+        </div>
+        <h4>Preferences</h4>
+        <div class="mode-wrapper">
+          <label>
+            <input type="radio" name="theme" id="light" value="light" /> Light
+            Mode
+          </label>
+          <label>
+            <input type="radio" name="theme" id="dark" value="dark" /> Dark Mode
+          </label>
+          <h5>Font size:</h5>
+          <div class="font-size-wrapper">
+            <input
+              type="range"
+              id="font-size-slider"
+              min="12"
+              max="24"
+              value="16"
+            />
+            <span id="font-size-value">16px</span>
+          </div>
+        </div>
+        <h5>Options:</h5>
+        <div class="options-wrapper">
+          <label>
+            <input type="checkbox" id="spell-check" checked />
+            Enable Spell Check
+          </label>
+        </div>
+        <h4>Support</h4>
+        <div class="support-wrapper">
+          <div class="support-row">
+            <a href="http://" target="_blank" rel="noopener noreferrer"
+              ><span>★</span>Feedback or feature request</a
+            >
+          </div>
+          <div class="support-row">
+            <a href="http://" target="_blank" rel="noopener noreferrer"
+              ><span>★</span>Leave a review</a
+            >
+          </div>
+          <div class="support-row">
+            <a href="http://" target="_blank" rel="noopener noreferrer"
+              ><span>★</span>Buy me a coffee :)</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Napkin Notes • Quickest canvas for thought",
+  "description": "Capture ideas and notes in seconds from the side panel!",
+  "version": "1.3.3",
+  "permissions": ["storage", "sidePanel"],
+  "icons": {
+    "48": "/icon48-3.png",
+    "128": "/icon48-3.png"
+  },
+  "action": {
+    "default_icon": {
+      "48": "/icon48-3.png",
+      "128": "/icon48-3.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "commands": {
+    "open-side-panel": {
+      "suggested_key": {
+        "default": "Alt+X"
+      },
+      "description": "Open Napkin Notes side panel"
+    }
+  }
+}

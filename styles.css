@@ -1,0 +1,351 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+.inter {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Default theme (Dark Mode) */
+  --background-color: #1e1e26;
+  --text-color: #f7f6fa;
+  --border-color: #2f3039;
+  --focus-border-color: #4dad757a;
+  --hr-color: #4d4f5c;
+  --bold-color: #4dad75;
+  --highlight-bg-color: #67ba6f;
+  --highlight-text-color: #a4d7ba;
+  --modal-bg-color: #343d3f;
+  --modal-keyboard-btn-text: #4dad75cf;
+  --modal-keyboard-btn-bg: #2e383a;
+  --modal-keyboard-btn-border: #4dad75;
+  --box-shadow: 0px 0px 10px 0px rgba(77, 79, 92, 0.3);
+}
+
+body.light-mode {
+  --background-color: #f7f7f7;
+  --text-color: #1e1e26;
+  --border-color: #ccc;
+  --focus-border-color: #4dad757a;
+  --hr-color: #ddd;
+  --bold-color: #4dad75;
+  /* --bold-color: #67ba6f; */
+  /* --border-color: #2f3039; */
+  --bold-color: #4dad75;
+  --highlight-bg-color: #67ba6f;
+  --highlight-text-color: #D1E2CF;
+  --modal-bg-color: #FDFDFD;
+  --modal-keyboard-btn-text: #4dad75cf;
+  --modal-keyboard-btn-bg: #D1E2CF;
+  --modal-keyboard-btn-border: #4dad75;
+  --box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  margin: 0;
+  padding: 10px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-size: 1.1rem;
+}
+
+.top-banner {
+  display: flex;
+  /* height: 2rem; */
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 13px;
+  gap: 11px;
+}
+
+.logo-wrapper {
+  display: flex;
+  height: 2rem;
+  align-items: center;
+  margin-bottom: 13px;
+  gap: 11px;
+}
+
+.logo-wrapper > img {
+  height: 1.8rem;
+}
+
+.logo-wrapper > h2 {
+  height: 1.3rem;
+  font-weight: 100;
+  color: var(--link-color);
+}
+
+#help-button {
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--bold-color);
+  background-color: transparent;
+  font-size: 1.2rem;
+  border-radius: 50%;
+  border-color: var(--border-color);
+}
+
+#editor {
+  border: 1px solid var(--border-color);
+  line-height: 1.7rem;
+  padding: 10px;
+  min-height: 200px;
+  min-height: 90vh;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+#editor:focus,
+#editor:active {
+  border: 1px solid var(--focus-border-color);
+  outline: none;
+}
+
+#editor:empty::before {
+  content: "Write down your notes here ✏️ \A - Shortcut: Ctrl + B for bold text \A - Shortcut: Ctrl + I for italics \A - Tip: Double-click to quickly edit \A - Tip: Type --- to create dividers for separation";
+  white-space: pre-wrap; /* Allows line breaks to be respected */
+  /* color: rgb(86, 86, 86); */
+  color: rgba(187, 187, 187, 0.8);
+}
+
+.link {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+hr {
+  color: var(--hr-color);
+  border: 0.3px solid var(--hr-color);
+  margin: 20px auto;
+}
+
+b {
+  color: var(--bold-color);
+}
+
+footer {
+  text-align: right;
+  color: var(--text-color) 9c;
+  margin-top: -5px;
+  font-size: 0.95rem;
+}
+
+.modal {
+  /* display: none; */
+  position: fixed;
+  z-index: 1;
+  right: 10px;
+  top: 10px;
+  max-width: 325px;
+  background-color: var(--modal-bg-color);
+  border-radius: 10px;
+  font-size: 1rem;
+  line-height: 1.4rem;
+}
+
+.modal-content {
+  padding: 1rem;
+}
+
+.modal-content > h3 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  font-weight: 300;
+}
+
+h4 {
+  margin-bottom: 8px;
+  margin-top: 20px;
+  font-weight: 550;
+  font-size: 17px;
+  letter-spacing: -0.2px;
+}
+
+.shortcuts-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.shortcut-row > p {
+  color: var(--text-color);
+  /* opacity: 0.8; */
+  font-weight: 300;
+}
+
+.shortcut-keys-wrapper {
+  display: flex;
+  gap: 5px;
+}
+
+.shortcut-key {
+  font-size: 13px;
+  color: var(--modal-keyboard-btn-text);
+  background-color: var(--modal-keyboard-btn-bg);
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 0.3px solid var(--modal-keyboard-btn-border);
+  min-width: 25px;
+  text-align: center;
+}
+
+.modal-content > ul {
+  margin-left: 2rem;
+  line-height: 1.4rem;
+}
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mode-wrapper {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4rem;
+}
+
+label {
+  cursor: pointer;
+  margin-left: 1.2rem;
+  cursor: pointer;
+}
+
+.font-size-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h5 {
+  margin-top: 10px;
+  margin-bottom: 0px;
+}
+
+#font-size-slider {
+  width: 100px;
+}
+
+.support-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.support-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.support-row > a > span {
+  margin-right: 0.5rem;
+}
+
+.support-row > a {
+  cursor: pointer;
+  color: var(--text-color);
+  text-decoration: none;
+  /* border: 1px solid var(--focus-border-color);
+  border-radius: 2rem;
+  padding: 1px 15px; */
+}
+
+.support-row > a:hover::after {
+  content: "->";
+}
+
+.popup-body {
+  height: 140px;
+  width: 350px;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.popup-message {
+  line-height: 1.8rem;
+}
+
+/* #editor::after {
+  content: '';
+  width: 80%;
+  height: 50px;
+  background-color: #467D5D;
+  position: absolute;
+  margin: 0 auto;
+  bottom: 18px;
+  left: 4px;
+  border-radius: 8px;
+  transform: rotate(5deg);
+  z-index: -5;
+} */
+
+.resizable {
+  display: inline-block;
+  position: relative;
+}
+
+.resizable img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.resizable:after {
+  content: "(warning: images don't save)";
+  color: #67ba6f;
+  display: block;
+  position: absolute;
+  left: 0;
+  bottom: -3;
+  cursor: se-resize;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 
+.inverted-radius {
+  --r: 15px; 
+  --s: 45px; 
+
+  width: 98%;
+  padding: 15px;
+  height: 98%;
+  border-radius: var(--r);
+  --_m: /calc(2 * var(--r)) calc(2 * var(--r)) radial-gradient(
+      #000 70%,
+      #0000 72%
+    ) no-repeat;
+  mask: right calc(var(--s) + var(--r)) top 0 var(--_m),
+    right calc(var(--s) + var(--r)) var(--_m),
+    radial-gradient(var(--s) at 100% 0, #0000 99%, #000 101%)
+      calc(-1 * var(--r)) var(--r) no-repeat,
+    conic-gradient(
+      at calc(100% - var(--s) - 2 * var(--r)) calc(var(--s) + 2 * var(--r)),
+      #0000 25%,
+      #000 0
+    );
+} */
