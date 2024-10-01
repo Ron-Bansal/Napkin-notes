@@ -15,7 +15,8 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -23,7 +24,7 @@
   "commands": {
     "open-side-panel": {
       "suggested_key": {
-        "default": "Alt+X"
+        "default": "Alt+Shift+X"
       },
       "description": "Open Napkin Notes side panel"
     }
