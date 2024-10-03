@@ -686,11 +686,13 @@ input:checked + .slider:before {
   margin-right: 10px;
   width: 30px;
   text-align: center;
-  filter: brightness(0) invert(1);
+  -webkit-filter: brightness(0) invert(1);
+          filter: brightness(0) invert(1);
 }
 
 body.light-mode .support-item img {
-  filter: brightness(0); /* Adjust this for light mode */
+  -webkit-filter: brightness(0);
+          filter: brightness(0); /* Adjust this for light mode */
 }
 
 .support-content {
@@ -714,15 +716,6 @@ a {
   color: #6c757d;
   color: var(--text-color);
 }
-.fa-comment-dots {
-  color: #20c997;
-}
-.fa-star {
-  color: #fcc419;
-}
-.fa-mug-hot {
-  color: #ff922b;
-}
 
 .support-row-1 {
   display: flex;
@@ -737,4 +730,22 @@ a {
 
 .social-cta > a {
   color: var(--modal-input-accent-color);
+}
+
+.privacy-policy-link {
+  font-size: 0.85rem;
+  margin-top: 7px;
+  text-align: right;
+}
+
+.privacy-policy-link > a {
+  color: var(--modal-input-accent-color) !important;
+}
+
+.customise-shortcut-link {
+  font-size: 0.85rem;
+}
+
+.customise-shortcut-link > a {
+  color: var(--modal-input-accent-color) !important;
 }

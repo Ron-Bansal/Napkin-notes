@@ -66,7 +66,7 @@ async function sendAnalyticsEvent(name, params = {}) {
         body,
       }
     );
-    console.log("GA response status:", response.status);
+    // console.log("GA response status:", response.status);
 
     // Send to debug endpoint
     const debugResponse = await fetch(
@@ -77,7 +77,7 @@ async function sendAnalyticsEvent(name, params = {}) {
       }
     );
     const debugResult = await debugResponse.json();
-    console.log("GA debug response:", debugResult);
+    // console.log("GA debug response:", debugResult);
   } catch (error) {
     console.error("Error sending GA event:", error);
   }

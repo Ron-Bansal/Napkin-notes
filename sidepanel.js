@@ -44,6 +44,52 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Function to migrate data from chrome.storage.sync to chrome.storage.local
+  const migrateToLocalStorage = async () => {
+    return new Promise((resolve, reject) => {
+      // Fetch all data from chrome.storage.sync
+      chrome.storage.sync.get(null, (syncData) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "Error reading from chrome.storage.sync:",
+            chrome.runtime.lastError
+          );
+          reject(chrome.runtime.lastError);
+          return;
+        }
+
+        // Write the fetched data to chrome.storage.local
+        chrome.storage.local.set(syncData, () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Error writing to chrome.storage.local:",
+              chrome.runtime.lastError
+            );
+            reject(chrome.runtime.lastError);
+            return;
+          }
+
+          // Set a migration flag in local storage
+          chrome.storage.local.set({ migrationComplete: true }, () => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "Error setting migration flag:",
+                chrome.runtime.lastError
+              );
+              reject(chrome.runtime.lastError);
+              return;
+            }
+
+            console.log(
+              "Migration from chrome.storage.sync to chrome.storage.local completed successfully."
+            );
+            resolve();
+          });
+        });
+      });
+    });
+  };
+
   // Load saved content and preferences
   const loadContentAndPreferences = () => {
     chrome.storage.local.get(
@@ -320,7 +366,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load saved footer visibility preference and adjust the UI accordingly
   chrome.storage.local.get(["footerVisible"], (result) => {
-    const footerVisible = result.footerVisible !== undefined ? result.footerVisible : true;
+    const footerVisible =
+      result.footerVisible !== undefined ? result.footerVisible : true;
     footerToggleCheckbox.checked = !footerVisible;
     footerElement.style.display = footerVisible ? "flex" : "none";
   });
@@ -409,19 +456,19 @@ window.addEventListener("error", (event) => {
 // Track link clicks
 function handleLinkClick(event) {
   const link = event.currentTarget;
-  const category = link.getAttribute('data-ga-category');
-  const action = link.getAttribute('data-ga-action');
-  const label = link.getAttribute('data-ga-label');
+  const category = link.getAttribute("data-ga-category");
+  const action = link.getAttribute("data-ga-action");
+  const label = link.getAttribute("data-ga-label");
 
-  sendAnalyticsEvent('link_click', {
+  sendAnalyticsEvent("link_click", {
     event_category: category,
     event_action: action,
-    event_label: label
+    event_label: label,
   });
 }
 
-document.querySelectorAll('.ga-track-link').forEach(link => {
-  link.addEventListener('click', handleLinkClick);
+document.querySelectorAll(".ga-track-link").forEach((link) => {
+  link.addEventListener("click", handleLinkClick);
 });
 
 // window.addEventListener("beforeunload", () => {

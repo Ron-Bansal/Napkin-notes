@@ -1,7 +1,10 @@
 // Listener for keyboard command
 chrome.commands.onCommand.addListener((command) => {
-  if (command === "open-side-panel") {
+  if (command === "open-side-panel" || command === "open-side-panel-secondary") {
     // openSidePanel();
+    if (command === "open-side-panel") {
+      console.log(command, "ALT + X PRESSED")
+    } 
     chrome.storage.local.set({ lastOpenMethod: "keyboard_shortcut" });
     openSidePanel();
   }
@@ -38,32 +41,6 @@ function openSidePanel() {
   });
 }
 
-// Function to open the side panel (storing method in storage)
-// function openSidePanel(method) {
-//   chrome.storage.local.set({ lastOpenMethod: method }, () => {
-//     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//       if (tabs.length > 0) {
-//         const currentTab = tabs[0];
-//         chrome.sidePanel.open(
-//           {
-//             tabId: currentTab.id,
-//           },
-//           () => {
-//             if (chrome.runtime.lastError) {
-//               console.error(chrome.runtime.lastError);
-//             } else {
-//               console.log("Side panel opened.");
-//             }
-//           }
-//         );
-//       } else {
-//         console.error("No active tab found.");
-//       }
-//     });
-//   });
-// }
-
-
 // background.js
 import { sendAnalyticsEvent } from "./analytics.js";
 
@@ -87,23 +64,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   return true; // Indicates that the response is sent asynchronously
 });
-
-// Track how the side panel was opened
-// chrome.action.onClicked.addListener(() => {
-//   openSidePanel("icon_click");
-// });
-
-// chrome.commands.onCommand.addListener((command) => {
-//   if (command === "open-side-panel") {
-//     openSidePanel("keyboard_shortcut");
-//   }
-// });
-
-// function openSidePanel(method) {
-//   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//     if (tabs.length > 0) {
-//       chrome.sidePanel.open({ tabId: tabs[0].id });
-//       chrome.runtime.sendMessage({ type: "PANEL_OPENED", method: method });
-//     }
-//   });
-// }
