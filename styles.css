@@ -232,6 +232,7 @@ body {
 }
 
 /* ---------- Editor -------------------------------------------------------- */
+/* #editor is the scroll container; TipTap mounts .ProseMirror (.np-prose) inside */
 #editor {
   flex: 1 1 auto;
   min-height: 0;
@@ -241,25 +242,38 @@ body {
   border-radius: var(--r-md);
   padding: var(--sp-4);
   line-height: 1.7;
-  white-space: pre-wrap;
   word-wrap: break-word;
   box-shadow: var(--shadow-sm);
   transition: border-color var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
 
-#editor:focus,
-#editor:active {
-  outline: none;
+#editor:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-#editor:empty::before {
-  content: "Welcome to Napkin — a canvas for fleeting ideas, always by your side.\A\A ☰  Tap the menu for shortcuts & preferences\A ✍  Start typing to capture a thought\A 💾  Notes auto-save locally\A\A 💡  Tip: use dividers (---) and section headers (!!!) to stay organised\A\A “The faintest ink is better than the best memory.”";
-  white-space: pre-wrap;
+.np-prose {
+  outline: none;
+  min-height: 100%;
+}
+
+.np-prose:focus {
+  outline: none;
+}
+
+.np-prose > * + * {
+  margin-top: 0.5em;
+}
+
+/* Placeholder (TipTap Placeholder extension) */
+.np-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
   color: var(--text-muted);
-  opacity: 0.75;
+  opacity: 0.7;
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 /* ---------- Note tabs ----------------------------------------------------- */
@@ -450,23 +464,22 @@ body {
   display: none;
 }
 
-/* ---------- Inline formatting (the "markdown" vocabulary) ----------------- */
-.link {
-  color: var(--accent);
-  text-decoration: none;
-}
-
-hr {
+/* ---------- Editor content (TipTap output) -------------------------------- */
+hr,
+.np-prose hr {
   border: 0;
   border-top: 1px solid var(--hr-color);
   margin: var(--sp-5) auto;
 }
 
+/* Bold → green, italic → highlight, underline → red, strike (legacy b/i/u kept) */
+.np-prose strong,
 b {
   color: var(--accent);
   font-weight: 600;
 }
 
+.np-prose em,
 i {
   color: var(--highlight-text);
   background-color: var(--highlight-bg);
@@ -475,11 +488,18 @@ i {
   font-style: italic;
 }
 
+.np-prose u,
 u {
   color: var(--danger);
   text-decoration-color: var(--danger);
 }
 
+.np-prose s {
+  color: var(--text-muted);
+}
+
+/* Section header — the old <mark> block is now an <h3> */
+.np-prose h3,
 mark {
   display: block;
   color: var(--highlight-text);
@@ -490,7 +510,65 @@ mark {
   border-radius: var(--r-sm);
   font-weight: 600;
   font-size: 1.05em;
-  text-decoration: none;
+  line-height: 1.4;
+}
+
+/* Links */
+.np-prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Lists */
+.np-prose ul,
+.np-prose ol {
+  padding-left: 1.4em;
+}
+
+.np-prose li {
+  margin: 0.15em 0;
+}
+
+.np-prose li > p {
+  margin: 0;
+}
+
+/* Checklists (TaskList / TaskItem) */
+.np-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+
+.np-prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.np-prose ul[data-type="taskList"] li > label {
+  margin: 0;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.np-prose ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.np-prose ul[data-type="taskList"] input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin-top: 0.28em;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.np-prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--text-muted);
+  text-decoration: line-through;
 }
 
 /* ---------- Status bar (tabs left · save + word count right) -------------- */
@@ -939,6 +1017,99 @@ kbd,
 a {
   text-decoration: none;
   color: inherit;
+}
+
+/* ---------- Buttons (settings + notice) ---------------------------------- */
+.btn-primary,
+.btn-ghost {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-strong);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.btn-ghost:hover {
+  background-color: var(--surface-2);
+}
+
+.btn-primary:active,
+.btn-ghost:active {
+  transform: scale(0.96);
+}
+
+#restore-notes {
+  padding: 5px 12px;
+  font-size: 12.5px;
+}
+
+/* ---------- Upgrade notice ------------------------------------------------ */
+.upgrade-notice {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background-color: rgba(16, 20, 26, 0.42);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: overlayIn var(--dur) ease;
+}
+
+.upgrade-notice.show {
+  display: flex;
+}
+
+.upgrade-card {
+  width: 100%;
+  max-width: 340px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--sp-5);
+  animation: sheetIn 0.26s var(--ease);
+}
+
+.upgrade-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  margin-bottom: var(--sp-2);
+}
+
+.upgrade-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-4);
+}
+
+.upgrade-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
 }
 
 /* ---------- Popup (popup.html) ------------------------------------------- */

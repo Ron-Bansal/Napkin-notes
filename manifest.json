@@ -2,8 +2,13 @@
   "manifest_version": 3,
   "name": "Napkin Notes • Canvas for thought",
   "description": "Your quickest canvas for thought. Capture ideas and notes in seconds from the side panel!",
-  "version": "2.1.0",
-  "permissions": ["storage", "sidePanel", "activeTab", "scripting"],
+  "version": "3.0.0",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "activeTab",
+    "scripting"
+  ],
   "icons": {
     "48": "/assets/icon48.png",
     "128": "/assets/icon128.png"
@@ -30,7 +35,9 @@
         "analytics.js",
         "assets/*"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ],
   "commands": {

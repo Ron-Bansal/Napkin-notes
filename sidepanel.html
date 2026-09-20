@@ -22,7 +22,7 @@
         <img src="./assets/menu.svg" alt="menu" />
       </button>
     </div>
-    <div id="editor" contenteditable="true"></div>
+    <div id="editor"></div>
 
     <footer id="app-footer" class="status-bar">
       <div class="note-tabs" id="note-tabs">
@@ -142,13 +142,31 @@
           <div class="shortcut-list">
             <div class="shortcut-row">
               <span>Section header</span>
-              <div class="keys">
-                <kbd>!!!</kbd><span class="kbd-note">text</span><kbd>!!!</kbd>
-              </div>
+              <div class="keys"><kbd>!!!</kbd><span class="kbd-note">space</span></div>
             </div>
             <div class="shortcut-row">
-              <span>Section divider</span>
+              <span>Divider</span>
               <div class="keys"><kbd>---</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Bullet list</span>
+              <div class="keys"><kbd>-</kbd><span class="kbd-note">space</span></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Numbered list</span>
+              <div class="keys"><kbd>1.</kbd><span class="kbd-note">space</span></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Checklist</span>
+              <div class="keys"><kbd>[ ]</kbd><span class="kbd-note">space</span></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Indent / outdent list</span>
+              <div class="keys"><kbd>Tab</kbd><span class="kbd-note">/</span><kbd>⇧Tab</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Link</span>
+              <div class="keys"><kbd>Ctrl</kbd><kbd>K</kbd></div>
             </div>
             <div class="shortcut-row">
               <span>Bold &amp; green</span>
@@ -164,7 +182,11 @@
             </div>
             <div class="shortcut-row">
               <span>Strikethrough</span>
-              <div class="keys"><kbd>Alt</kbd><kbd>Shift</kbd><kbd>S</kbd></div>
+              <div class="keys"><kbd>Alt</kbd><kbd>⇧</kbd><kbd>S</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Switch notes</span>
+              <div class="keys"><kbd>Alt</kbd><kbd>1</kbd><span class="kbd-note">–</span><kbd>3</kbd></div>
             </div>
             <div class="shortcut-row">
               <span>Open panel</span>
@@ -172,6 +194,16 @@
             </div>
           </div>
         </details>
+
+        <div class="settings-group" id="restore-row" style="display: none">
+          <div class="setting-row">
+            <span class="setting-label">
+              Restore original notes
+              <span class="setting-hint">Recover your pre-upgrade notes</span>
+            </span>
+            <button id="restore-notes" class="btn-ghost">Restore</button>
+          </div>
+        </div>
 
         <div class="sheet-footer">
           <a
@@ -205,6 +237,21 @@
       </div>
     </div>
 
-    <script type="module" src="sidepanel.js"></script>
+    <div id="upgrade-notice" class="upgrade-notice">
+      <div class="upgrade-card">
+        <div class="upgrade-title">A fresh new editor ✨</div>
+        <p class="upgrade-body">
+          Napkin now has rich text — links, checklists, bullets and nesting.
+          Your notes carried over, and a safe copy of the originals is kept
+          (restore anytime from Settings).
+        </p>
+        <div class="upgrade-actions">
+          <button id="upgrade-download" class="btn-ghost">Download a copy</button>
+          <button id="upgrade-dismiss" class="btn-primary">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="sidepanel.js"></script>
   </body>
 </html>
