@@ -1037,18 +1037,30 @@ a {
 .np-bubble {
   display: flex;
   align-items: center;
-  gap: 1px;
-  padding: 3px;
+  gap: 2px;
+  padding: 4px;
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: 11px;
   box-shadow: var(--shadow-md);
+  animation: bubbleIn 0.14s var(--ease);
+}
+
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .np-bubble-sep {
   width: 1px;
   height: 18px;
-  margin: 0 3px;
+  margin: 0 4px;
   background-color: var(--border);
 }
 
@@ -1056,25 +1068,36 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 6px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--text);
-  border-radius: var(--r-sm);
-  font-size: 14px;
-  line-height: 1;
+  color: var(--text-muted);
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color var(--dur) var(--ease);
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.np-bubble-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .np-bubble-btn:hover {
   background-color: var(--surface-2);
+  color: var(--text);
 }
 
 .np-bubble-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
+}
+
+.np-bubble-btn.is-active {
+  background-color: var(--accent-weak-bg);
+  color: var(--accent-strong);
 }
 
 .shortcut-note {

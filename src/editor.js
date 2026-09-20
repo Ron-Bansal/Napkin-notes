@@ -48,22 +48,36 @@ export function promptForLink(editor) {
   editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
 }
 
+// Clean monochrome line icons (Lucide-style), stroked with currentColor.
+const svg = (inner) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+const ICONS = {
+  bold: svg('<path d="M7 5h6a3.5 3.5 0 0 1 0 7H7z"/><path d="M7 12h7a3.5 3.5 0 0 1 0 7H7z"/>'),
+  italic: svg('<line x1="19" y1="5" x2="11" y2="5"/><line x1="13" y1="19" x2="5" y2="19"/><line x1="15" y1="5" x2="9" y2="19"/>'),
+  underline: svg('<path d="M7 5v6a5 5 0 0 0 10 0V5"/><line x1="5" y1="20" x2="19" y2="20"/>'),
+  strike: svg('<line x1="4" y1="12" x2="20" y2="12"/><path d="M16 6.5A4 4 0 0 0 12 4c-2.5 0-4 1.4-4 3.2"/><path d="M8.5 17A4 4 0 0 0 12 19c2.5 0 4-1.4 4-3.2"/>'),
+  link: svg('<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1-1"/>'),
+  h3: svg('<path d="M6 5v14"/><path d="M15 5v14"/><path d="M6 12h9"/>'),
+  bullet: svg('<line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
+  check: svg('<line x1="10" y1="7" x2="20" y2="7"/><line x1="10" y1="17" x2="20" y2="17"/><path d="M3 7l1.6 1.6L7.5 5.5"/><path d="M3 17l1.6 1.6L7.5 15.5"/>'),
+};
+
 // Floating format toolbar (appended to <body> so it is never clipped).
 function buildBubbleMenu(getEditor) {
   const el = document.createElement("div");
   el.className = "np-bubble";
-  const btns = [
-    ["bold", "<b>B</b>"],
-    ["italic", "<i>i</i>"],
-    ["underline", "<u>U</u>"],
-    ["strike", "<s>S</s>"],
+  const items = [
+    ["bold", "Bold"],
+    ["italic", "Italic"],
+    ["underline", "Underline"],
+    ["strike", "Strikethrough"],
     ["|", ""],
-    ["link", "🔗"],
-    ["h3", "H"],
-    ["bullet", "•"],
-    ["check", "☑"],
+    ["h3", "Header"],
+    ["bullet", "Bullet list"],
+    ["check", "Checklist"],
+    ["link", "Link"],
   ];
-  btns.forEach(([cmd, label]) => {
+  items.forEach(([cmd, label]) => {
     if (cmd === "|") {
       const sep = document.createElement("span");
       sep.className = "np-bubble-sep";
@@ -74,7 +88,9 @@ function buildBubbleMenu(getEditor) {
     b.type = "button";
     b.className = "np-bubble-btn";
     b.dataset.cmd = cmd;
-    b.innerHTML = label;
+    b.title = label;
+    b.setAttribute("aria-label", label);
+    b.innerHTML = ICONS[cmd] || "";
     b.addEventListener("mousedown", (e) => e.preventDefault()); // keep selection
     b.addEventListener("click", () => {
       const ed = getEditor();
@@ -92,6 +108,19 @@ function buildBubbleMenu(getEditor) {
     el.appendChild(b);
   });
   return el;
+}
+
+// Reflect the current selection's active marks/nodes on the toolbar buttons.
+function syncBubbleActive(menuEl, editor) {
+  const isActive = (cmd) => {
+    if (cmd === "h3") return editor.isActive("heading", { level: 3 });
+    if (cmd === "bullet") return editor.isActive("bulletList");
+    if (cmd === "check") return editor.isActive("taskList");
+    return editor.isActive(cmd);
+  };
+  menuEl.querySelectorAll(".np-bubble-btn").forEach((b) => {
+    b.classList.toggle("is-active", isActive(b.dataset.cmd));
+  });
 }
 
 export function createEditor({
@@ -175,6 +204,10 @@ export function createEditor({
     onUpdate,
   });
 
-  document.body.appendChild(menuEl);
+  // Note: do NOT append menuEl to the DOM — the BubbleMenu/tippy instance owns
+  // mounting and visibility. Appending it manually leaves a static copy behind.
+  const sync = () => syncBubbleActive(menuEl, editor);
+  editor.on("selectionUpdate", sync);
+  editor.on("transaction", sync);
   return editor;
 }
