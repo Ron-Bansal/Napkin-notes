@@ -294,10 +294,11 @@ function toggleNapkinOverlay(iframeUrl, initialWidth, themePref) {
     ".handle { position: absolute; top: 0; left: 0; width: 10px; height: 100%; cursor: col-resize; display: flex; align-items: center; justify-content: center; touch-action: none; }",
     ".handle::before { content: ''; width: 3px; height: 44px; border-radius: 3px; background: rgba(120, 120, 120, 0.35); transition: background 0.18s ease, height 0.18s ease; }",
     ".handle:hover::before { background: rgba(120, 120, 120, 0.7); height: 68px; }",
-    // Glow is offset left (negative X) so it never bleeds right onto the panel.
-    ".close { position: absolute; top: 16px; left: -33px; width: 33px; height: 46px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 1px solid var(--np-border); border-right: 0; border-radius: 12px 0 0 12px; background: var(--np-bg); color: var(--np-text); box-shadow: -5px 0 16px rgba(46, 158, 99, 0.28); opacity: 0; transform: translateX(10px); transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, width 0.18s ease, box-shadow 0.2s ease; }",
-    ".close:hover { background: var(--np-hover); width: 37px; box-shadow: -6px 0 22px rgba(46, 158, 99, 0.5); }",
-    ".close:active { transform: translateX(0) scale(0.96); }",
+    // A tab hanging from the top-left of the panel. Shadow uses a negative
+    // spread so it stays on the left edge and never bleeds onto the panel.
+    ".close { position: absolute; top: 0; left: -33px; width: 33px; height: 58px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 1px solid var(--np-border); border-top: 0; border-right: 0; border-radius: 0 0 0 14px; background: var(--np-bg); color: var(--np-text); box-shadow: -3px 0 10px -6px rgba(0, 0, 0, 0.30); opacity: 0; transform: translateX(10px); transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease; }",
+    ".close:hover { background: var(--np-hover); }",
+    ".close:active { background: var(--np-hover); }",
     ".close.show { opacity: 1; transform: translateX(0); }",
     ".close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }",
     "@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }",

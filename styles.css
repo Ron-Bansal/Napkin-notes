@@ -267,12 +267,18 @@ body {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
+/* A single segmented track holds the three slots (matches the settings pills) */
 .note-tab-list {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
+  gap: 2px;
+  padding: 3px;
+  background-color: var(--surface-2);
+  border-radius: var(--r-pill);
   min-width: 0;
 }
 
@@ -281,30 +287,36 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  background-color: var(--surface);
+  height: 24px;
+  padding: 0 11px;
+  border: 0;
+  background-color: transparent;
   color: var(--text-muted);
   border-radius: var(--r-pill);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+    color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
 
-.note-tab:hover {
-  border-color: var(--border-strong);
+.note-tab:hover:not(.active) {
+  color: var(--text);
+  background-color: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.note-tab:active:not(.renaming) {
+  transform: scale(0.96);
 }
 
 .note-tab-num {
   font-weight: 600;
-  color: var(--accent);
+  opacity: 0.85;
 }
 
 .note-tab-name {
-  max-width: 84px;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -314,18 +326,21 @@ body {
   display: none;
 }
 
+/* Active slot: elevated surface chip with the number in brand green */
 .note-tab.active {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
 }
 
 .note-tab.active .note-tab-num {
-  color: #ffffff;
+  color: var(--accent);
+  opacity: 1;
 }
 
 .note-tab.renaming {
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent-ring), var(--shadow-sm);
 }
 
 .note-rename-input {
@@ -340,11 +355,11 @@ body {
   padding: 0;
 }
 
+/* Prev/next — ghost buttons with a directional nudge on hover */
 .note-nav {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -352,28 +367,51 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  width: 26px;
   height: 26px;
-  border: 1px solid var(--border);
-  background-color: var(--surface);
+  border: 0;
+  background-color: transparent;
   color: var(--text-muted);
   border-radius: var(--r-pill);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
   transition: background-color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), color var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+    color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .note-arrow:hover {
-  border-color: var(--border-strong);
   background-color: var(--surface-2);
   color: var(--text);
 }
 
+#note-prev:hover {
+  transform: translateX(-2px);
+}
+
+#note-next:hover {
+  transform: translateX(2px);
+}
+
 .note-arrow:active {
-  transform: scale(0.94);
+  transform: scale(0.86);
+  background-color: var(--surface-2);
+}
+
+/* Subtle fade/rise when a note is loaded or switched */
+@keyframes noteEnter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#editor.note-enter {
+  animation: noteEnter 0.2s var(--ease);
 }
 
 /* Custom tooltips for tabs + arrows (below, so they don't clip at the top) */
@@ -384,9 +422,9 @@ body {
 .note-tabs [data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: calc(100% + 6px);
+  bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(2px);
+  transform: translateX(-50%) translateY(-2px);
   background-color: var(--text);
   color: var(--bg);
   font-size: 11px;
@@ -407,7 +445,8 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-.note-tab.renaming[data-tooltip]::after {
+.note-tab.renaming[data-tooltip]::after,
+.note-arrow:active[data-tooltip]::after {
   display: none;
 }
 
@@ -454,35 +493,61 @@ mark {
   text-decoration: none;
 }
 
-/* ---------- Status bar ---------------------------------------------------- */
+/* ---------- Status bar (tabs left · save + word count right) -------------- */
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--sp-2);
   padding: 0 var(--sp-1);
   font-size: 11px;
   color: var(--text-muted);
-  min-height: 14px;
 }
 
-.status-left {
-  font-variant-numeric: tabular-nums;
-}
-
-.status-right {
+.status-meta {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-left: auto;
-  opacity: 0.75;
+  gap: var(--sp-3);
+  flex-shrink: 0;
 }
 
-.status-right::before {
+/* Save indicator: hidden until the first edit, amber while saving, green idle */
+.save-status {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.save-status.visible {
+  display: inline-flex;
+  opacity: 0.8;
+}
+
+.save-status::before {
   content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background-color: var(--text-muted);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.save-status.saving::before {
+  background-color: #e0a63a;
+}
+
+.save-status.saved::before {
   background-color: var(--accent);
+}
+
+.word-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.word-count:empty {
+  display: none;
 }
 
 /* ---------- Settings sheet ------------------------------------------------ */
