@@ -1019,6 +1019,70 @@ a {
   color: inherit;
 }
 
+/* Images */
+.np-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-sm);
+  margin: 0.35em 0;
+  display: block;
+}
+
+.np-prose img.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- Bubble (selection) menu -------------------------------------- */
+.np-bubble {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+}
+
+.np-bubble-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background-color: var(--border);
+}
+
+.np-bubble-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.np-bubble-btn:hover {
+  background-color: var(--surface-2);
+}
+
+.np-bubble-btn:active {
+  transform: scale(0.92);
+}
+
+.shortcut-note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-1);
+}
+
 /* ---------- Buttons (settings + notice) ---------------------------------- */
 .btn-primary,
 .btn-ghost {
