@@ -135,11 +135,13 @@ async function openFallback(tab) {
   const url = chrome.runtime.getURL("sidepanel.html");
 
   let width = 384;
+  let theme = "system";
   try {
-    const stored = await chrome.storage.local.get("napkinOverlayWidth");
+    const stored = await chrome.storage.local.get(["napkinOverlayWidth", "theme"]);
     if (typeof stored.napkinOverlayWidth === "number") {
       width = stored.napkinOverlayWidth;
     }
+    if (stored.theme) theme = stored.theme;
   } catch (e) {}
 
   if (chrome.scripting && tabId != null) {
@@ -147,7 +149,7 @@ async function openFallback(tab) {
       {
         target: { tabId },
         func: toggleNapkinOverlay,
-        args: [url, width],
+        args: [url, width, theme],
       },
       () => {
         if (chrome.runtime.lastError) {
@@ -208,7 +210,7 @@ chrome.windows.onRemoved.addListener((windowId) => {
 // Serialized and executed in the page (isolated world). No access to module
 // scope — everything comes through `iframeUrl`. Re-running toggles it.
 // ---------------------------------------------------------------------------
-function toggleNapkinOverlay(iframeUrl, initialWidth) {
+function toggleNapkinOverlay(iframeUrl, initialWidth, themePref) {
   const ROOT_ID = "napkin-notes-overlay-root";
   const WIDTH_KEY = "napkinOverlayWidth";
   const MIN_W = 300;
@@ -288,12 +290,13 @@ function toggleNapkinOverlay(iframeUrl, initialWidth) {
     ":host { --np-bg: #f5f6f7; --np-text: #2b2d33; --np-border: rgba(0,0,0,0.10); --np-hover: #eceef0; }",
     "@media (prefers-color-scheme: dark) { :host { --np-bg: #16171d; --np-text: #e9eaee; --np-border: rgba(255,255,255,0.12); --np-hover: #1e2027; } }",
     ".wrap { position: relative; width: 100%; height: 100%; background: transparent; }",
-    ".frame { width: 100%; height: 100%; border: 0; background: #ffffff; display: block; }",
+    ".frame { width: 100%; height: 100%; border: 0; background: var(--np-bg); display: block; }",
     ".handle { position: absolute; top: 0; left: 0; width: 10px; height: 100%; cursor: col-resize; display: flex; align-items: center; justify-content: center; touch-action: none; }",
     ".handle::before { content: ''; width: 3px; height: 44px; border-radius: 3px; background: rgba(120, 120, 120, 0.35); transition: background 0.18s ease, height 0.18s ease; }",
     ".handle:hover::before { background: rgba(120, 120, 120, 0.7); height: 68px; }",
-    ".close { position: absolute; top: 16px; left: -33px; width: 33px; height: 46px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 1px solid var(--np-border); border-right: 0; border-radius: 12px 0 0 12px; background: var(--np-bg); color: var(--np-text); box-shadow: -7px 0 20px rgba(0, 0, 0, 0.12), 0 0 14px rgba(46, 158, 99, 0.30); opacity: 0; transform: translateX(10px); transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, width 0.18s ease, box-shadow 0.2s ease; }",
-    ".close:hover { background: var(--np-hover); width: 37px; box-shadow: -7px 0 20px rgba(0, 0, 0, 0.14), 0 0 22px rgba(46, 158, 99, 0.55); }",
+    // Glow is offset left (negative X) so it never bleeds right onto the panel.
+    ".close { position: absolute; top: 16px; left: -33px; width: 33px; height: 46px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; border: 1px solid var(--np-border); border-right: 0; border-radius: 12px 0 0 12px; background: var(--np-bg); color: var(--np-text); box-shadow: -5px 0 16px rgba(46, 158, 99, 0.28); opacity: 0; transform: translateX(10px); transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, width 0.18s ease, box-shadow 0.2s ease; }",
+    ".close:hover { background: var(--np-hover); width: 37px; box-shadow: -6px 0 22px rgba(46, 158, 99, 0.5); }",
     ".close:active { transform: translateX(0) scale(0.96); }",
     ".close.show { opacity: 1; transform: translateX(0); }",
     ".close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }",
@@ -327,25 +330,21 @@ function toggleNapkinOverlay(iframeUrl, initialWidth) {
   shadow.appendChild(wrap);
   document.documentElement.appendChild(root);
 
-  // Tint the close tab to match the user's Napkin theme (same colour as behind
-  // the editor), so it reads as part of the panel rather than the page.
-  try {
-    chrome.storage.local.get(["theme"], (res) => {
-      const t = res && res.theme;
-      const dark =
-        t === "dark" ||
-        ((!t || t === "system") &&
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches);
-      const c = dark
-        ? { bg: "#16171d", text: "#e9eaee", border: "rgba(255,255,255,0.12)", hover: "#1e2027" }
-        : { bg: "#f5f6f7", text: "#2b2d33", border: "rgba(0,0,0,0.10)", hover: "#eceef0" };
-      root.style.setProperty("--np-bg", c.bg);
-      root.style.setProperty("--np-text", c.text);
-      root.style.setProperty("--np-border", c.border);
-      root.style.setProperty("--np-hover", c.hover);
-    });
-  } catch (e) {}
+  // Tint the panel + close tab to match the user's Napkin theme (same colour
+  // as behind the editor), so the tab reads as part of the panel, not the page.
+  // themePref comes from the service worker; "system" resolves via matchMedia.
+  const prefersDark =
+    themePref === "dark" ||
+    ((!themePref || themePref === "system") &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const c = prefersDark
+    ? { bg: "#16171d", text: "#e9eaee", border: "rgba(255,255,255,0.12)", hover: "#1e2027" }
+    : { bg: "#f5f6f7", text: "#2b2d33", border: "rgba(0,0,0,0.10)", hover: "#eceef0" };
+  root.style.setProperty("--np-bg", c.bg);
+  root.style.setProperty("--np-text", c.text);
+  root.style.setProperty("--np-border", c.border);
+  root.style.setProperty("--np-hover", c.hover);
 
   // Slide in on the next frame so the initial off-screen transform is painted.
   requestAnimationFrame(() => {
