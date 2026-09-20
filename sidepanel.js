@@ -162,6 +162,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderActiveNote = () => {
     editor.innerHTML = (notes[activeNote] && notes[activeNote].content) || "";
+    // Restart the subtle enter animation on each load/switch.
+    editor.classList.remove("note-enter");
+    void editor.offsetWidth;
+    editor.classList.add("note-enter");
     renderTabs();
     updateWordCount();
   };
