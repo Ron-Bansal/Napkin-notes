@@ -22,6 +22,23 @@
         <img src="./assets/menu.svg" alt="menu" />
       </button>
     </div>
+    <div class="note-tabs" id="note-tabs">
+      <div class="note-tab-list" role="tablist">
+        <button class="note-tab" data-index="0" role="tab" data-tooltip="Note 1 · Alt+1">
+          <span class="note-tab-num">1</span><span class="note-tab-name"></span>
+        </button>
+        <button class="note-tab" data-index="1" role="tab" data-tooltip="Note 2 · Alt+2">
+          <span class="note-tab-num">2</span><span class="note-tab-name"></span>
+        </button>
+        <button class="note-tab" data-index="2" role="tab" data-tooltip="Note 3 · Alt+3">
+          <span class="note-tab-num">3</span><span class="note-tab-name"></span>
+        </button>
+      </div>
+      <div class="note-nav">
+        <button class="note-arrow" id="note-prev" data-tooltip="Previous · Alt+←" aria-label="Previous note">‹</button>
+        <button class="note-arrow" id="note-next" data-tooltip="Next · Alt+→" aria-label="Next note">›</button>
+      </div>
+    </div>
     <div id="editor" contenteditable="true"></div>
 
     <footer id="app-footer" class="status-bar">

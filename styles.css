@@ -262,6 +262,155 @@ body {
   opacity: 0.75;
 }
 
+/* ---------- Note tabs ----------------------------------------------------- */
+.note-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.note-tab-list {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.note-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-muted);
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.note-tab:hover {
+  border-color: var(--border-strong);
+}
+
+.note-tab-num {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.note-tab-name {
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-tab-name:empty {
+  display: none;
+}
+
+.note-tab.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.note-tab.active .note-tab-num {
+  color: #ffffff;
+}
+
+.note-tab.renaming {
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.note-rename-input {
+  width: 84px;
+  height: 20px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0;
+}
+
+.note-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.note-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: 1px solid var(--border);
+  background-color: var(--surface);
+  color: var(--text-muted);
+  border-radius: var(--r-pill);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.note-arrow:hover {
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.note-arrow:active {
+  transform: scale(0.94);
+}
+
+/* Custom tooltips for tabs + arrows (below, so they don't clip at the top) */
+.note-tabs [data-tooltip] {
+  position: relative;
+}
+
+.note-tabs [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background-color: var(--text);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.note-tabs [data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.note-tab.renaming[data-tooltip]::after {
+  display: none;
+}
+
 /* ---------- Inline formatting (the "markdown" vocabulary) ----------------- */
 .link {
   color: var(--accent);

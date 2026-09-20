@@ -93,6 +93,181 @@ document.addEventListener("DOMContentLoaded", () => {
     wordCountEl.textContent = `${words} ${words === 1 ? "word" : "words"}`;
   };
 
+  // -------------------------------------------------------------------------
+  // Notes — three fixed slots. The single-note `content` is migrated into
+  // slot 1 and kept as an untouched backup. Content stays HTML per note so the
+  // TipTap migration can load each slot with no further schema change.
+  // -------------------------------------------------------------------------
+  const NOTE_COUNT = 3;
+  const NAME_MAX = 16;
+  let notes = [
+    { content: "", name: "" },
+    { content: "", name: "" },
+    { content: "", name: "" },
+  ];
+  let activeNote = 0;
+  let renaming = false;
+
+  const tabEls = Array.from(document.querySelectorAll(".note-tab"));
+  const prevNoteBtn = document.getElementById("note-prev");
+  const nextNoteBtn = document.getElementById("note-next");
+
+  const persistNotes = () => {
+    try {
+      chrome.storage.local.set({ notes });
+    } catch (e) {}
+  };
+  const persistActiveNote = () => {
+    try {
+      chrome.storage.local.set({ activeNote });
+    } catch (e) {}
+  };
+
+  // Build a valid 3-slot array from stored data, migrating the legacy single
+  // note into slot 1 the first time.
+  const normalizeNotes = (raw, legacyContent) => {
+    const out = [];
+    for (let i = 0; i < NOTE_COUNT; i++) {
+      const n = Array.isArray(raw) ? raw[i] : null;
+      out.push({
+        content:
+          n && typeof n.content === "string"
+            ? n.content
+            : i === 0 && typeof legacyContent === "string"
+            ? legacyContent
+            : "",
+        name:
+          n && typeof n.name === "string" ? n.name.slice(0, NAME_MAX) : "",
+      });
+    }
+    return out;
+  };
+
+  const renderTabs = () => {
+    tabEls.forEach((tab, i) => {
+      const numEl = tab.querySelector(".note-tab-num");
+      const nameEl = tab.querySelector(".note-tab-name");
+      const name = (notes[i] && notes[i].name) || "";
+      if (numEl) numEl.textContent = String(i + 1);
+      if (nameEl && !tab.classList.contains("renaming")) {
+        nameEl.textContent = name;
+      }
+      tab.classList.toggle("active", i === activeNote);
+      const label = name || `Note ${i + 1}`;
+      tab.setAttribute("data-tooltip", `${label} · Alt+${i + 1}`);
+      tab.setAttribute("aria-label", label);
+      tab.setAttribute("aria-selected", i === activeNote ? "true" : "false");
+    });
+  };
+
+  const renderActiveNote = () => {
+    editor.innerHTML = (notes[activeNote] && notes[activeNote].content) || "";
+    renderTabs();
+    updateWordCount();
+  };
+
+  const switchNote = (index) => {
+    index = ((index % NOTE_COUNT) + NOTE_COUNT) % NOTE_COUNT;
+    if (index === activeNote) {
+      editor.focus();
+      return;
+    }
+    if (notes[activeNote]) notes[activeNote].content = editor.innerHTML;
+    persistNotes();
+    activeNote = index;
+    persistActiveNote();
+    renderActiveNote();
+    editor.focus();
+    sendAnalyticsEvent("note_switched", { note: activeNote + 1 });
+  };
+
+  const cycleNote = (delta) => switchNote(activeNote + delta);
+
+  // Inline rename (double-click or right-click a tab).
+  const beginRename = (index) => {
+    if (renaming) return;
+    renaming = true;
+    const tab = tabEls[index];
+    const nameEl = tab.querySelector(".note-tab-name");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "note-rename-input";
+    input.maxLength = NAME_MAX;
+    input.value = notes[index].name || "";
+    input.placeholder = `Note ${index + 1}`;
+    tab.classList.add("renaming");
+    if (nameEl) nameEl.style.display = "none";
+    tab.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      renaming = false;
+      if (save) {
+        notes[index].name = input.value.trim().slice(0, NAME_MAX);
+        persistNotes();
+      }
+      input.remove();
+      tab.classList.remove("renaming");
+      if (nameEl) nameEl.style.display = "";
+      renderTabs();
+    };
+
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation(); // don't trigger note shortcuts while typing a name
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finish(true);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        finish(false);
+      }
+    });
+    input.addEventListener("blur", () => finish(true));
+  };
+
+  // Wire tab / arrow / keyboard controls.
+  tabEls.forEach((tab, i) => {
+    tab.addEventListener("click", () => switchNote(i));
+    tab.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      beginRename(i);
+    });
+  });
+  if (prevNoteBtn) prevNoteBtn.addEventListener("click", () => cycleNote(-1));
+  if (nextNoteBtn) nextNoteBtn.addEventListener("click", () => cycleNote(1));
+
+  document.addEventListener("keydown", (e) => {
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    // Match on e.code, not e.key: on macOS Option+1 yields the character "¡",
+    // so e.key would be "¡" while e.code stays "Digit1".
+    switch (e.code) {
+      case "Digit1":
+        switchNote(0);
+        e.preventDefault();
+        break;
+      case "Digit2":
+        switchNote(1);
+        e.preventDefault();
+        break;
+      case "Digit3":
+        switchNote(2);
+        e.preventDefault();
+        break;
+      case "ArrowLeft":
+        cycleNote(-1);
+        e.preventDefault();
+        break;
+      case "ArrowRight":
+        cycleNote(1);
+        e.preventDefault();
+        break;
+    }
+  });
+
   // Check if migration is needed and perform if necessary
   chrome.storage.local.get("migrationComplete", (result) => {
     if (!result.migrationComplete) {
@@ -161,10 +336,22 @@ document.addEventListener("DOMContentLoaded", () => {
         "editorFont",
         "plainPaste",
         "wordCount",
+        "notes",
+        "activeNote",
       ],
       (result) => {
-        if (result.content) {
-          editor.innerHTML = result.content;
+        // Notes: use stored slots, or migrate the legacy single note into slot 1.
+        const migratingNotes = !Array.isArray(result.notes);
+        notes = normalizeNotes(result.notes, result.content);
+        activeNote = Number.isInteger(result.activeNote)
+          ? Math.min(Math.max(result.activeNote, 0), NOTE_COUNT - 1)
+          : 0;
+        renderActiveNote();
+        if (migratingNotes) {
+          // First run under multi-note: persist the new shape. The legacy
+          // `content` key is intentionally left untouched as a backup.
+          persistNotes();
+          persistActiveNote();
         }
         if (result.theme) {
           document.body.classList.remove("dark-mode", "light-mode");
@@ -212,13 +399,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Save content function
+  // Save content function — writes into the active note slot.
   const saveContent = async () => {
     const content = editor.innerHTML;
-    chrome.storage.local.set({ content }, async () => {
-      console.log("Content saved");
-
-      // Track content length or number of notes (if you have separate note structure)
+    if (notes[activeNote]) notes[activeNote].content = content;
+    chrome.storage.local.set({ notes }, async () => {
       const contentLength = content.length;
       await sendAnalyticsEvent("content_saved", {
         content_length: contentLength,
