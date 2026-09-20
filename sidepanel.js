@@ -26,14 +26,247 @@ document.addEventListener("DOMContentLoaded", () => {
   const systemRadio = document.getElementById("system");
   const lightRadio = document.getElementById("light");
   const darkRadio = document.getElementById("dark");
-  const fontSizeSlider = document.getElementById("font-size-slider");
-  const fontSizeValue = document.getElementById("font-size-value");
-  const lineHeightSlider = document.getElementById("line-height-slider");
-  const lineHeightValue = document.getElementById("line-height-value");
+  const textSizeRadios = document.querySelectorAll('input[name="text-size"]');
+  const editorFontRadios = document.querySelectorAll('input[name="editor-font"]');
   const spellCheckCheckbox = document.getElementById("spell-check");
-  const footerToggleCheckbox = document.getElementById("footer-toggle");
-  const footerElement = document.getElementById("app-footer");
-  const analyticsOptIn = document.getElementById("analytics-opt-in");
+  const plainPasteCheckbox = document.getElementById("plain-paste");
+  const wordCountCheckbox = document.getElementById("word-count-toggle");
+  const wordCountEl = document.getElementById("word-count");
+
+  // Text size presets — line height is derived from the chosen size so the
+  // two never drift out of proportion (replaces the old font/line sliders).
+  const TEXT_SIZES = {
+    small: { font: 13, line: 1.5 },
+    medium: { font: 15, line: 1.6 },
+    large: { font: 17, line: 1.7 },
+  };
+
+  const applyTextSize = (size) => {
+    const cfg = TEXT_SIZES[size] || TEXT_SIZES.medium;
+    editor.style.fontSize = `${cfg.font}px`;
+    editor.style.lineHeight = `${cfg.line}`;
+    textSizeRadios.forEach((radio) => {
+      radio.checked = radio.value === size;
+    });
+  };
+
+  // Prefer the new textSize preference; otherwise migrate the old numeric
+  // fontSize into the nearest bucket so existing users keep their setting.
+  const resolveTextSize = (result) => {
+    if (result.textSize && TEXT_SIZES[result.textSize]) return result.textSize;
+    if (result.fontSize) {
+      const n = parseInt(result.fontSize, 10);
+      if (n <= 13) return "small";
+      if (n >= 17) return "large";
+      return "medium";
+    }
+    return "medium";
+  };
+
+  // Editor font presets (system stacks — no extra fonts to load).
+  const EDITOR_FONTS = {
+    sans: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',
+    serif: '"Iowan Old Style", Palatino, Georgia, "Times New Roman", serif',
+    mono: 'ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace',
+  };
+
+  const applyEditorFont = (font) => {
+    const stack = EDITOR_FONTS[font] || EDITOR_FONTS.sans;
+    editor.style.fontFamily = stack;
+    editorFontRadios.forEach((radio) => {
+      radio.checked = radio.value === font;
+    });
+  };
+
+  // Whether pasted content is stripped to plain text (set from storage below).
+  let plainPasteEnabled = false;
+  let wordCountEnabled = false;
+
+  const updateWordCount = () => {
+    if (!wordCountEl) return;
+    if (!wordCountEnabled) {
+      wordCountEl.textContent = "";
+      return;
+    }
+    const text = editor.textContent.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    wordCountEl.textContent = `${words} ${words === 1 ? "word" : "words"}`;
+  };
+
+  // -------------------------------------------------------------------------
+  // Notes — three fixed slots. The single-note `content` is migrated into
+  // slot 1 and kept as an untouched backup. Content stays HTML per note so the
+  // TipTap migration can load each slot with no further schema change.
+  // -------------------------------------------------------------------------
+  const NOTE_COUNT = 3;
+  const NAME_MAX = 16;
+  let notes = [
+    { content: "", name: "" },
+    { content: "", name: "" },
+    { content: "", name: "" },
+  ];
+  let activeNote = 0;
+  let renaming = false;
+
+  const tabEls = Array.from(document.querySelectorAll(".note-tab"));
+  const prevNoteBtn = document.getElementById("note-prev");
+  const nextNoteBtn = document.getElementById("note-next");
+
+  const persistNotes = () => {
+    try {
+      chrome.storage.local.set({ notes });
+    } catch (e) {}
+  };
+  const persistActiveNote = () => {
+    try {
+      chrome.storage.local.set({ activeNote });
+    } catch (e) {}
+  };
+
+  // Build a valid 3-slot array from stored data, migrating the legacy single
+  // note into slot 1 the first time.
+  const normalizeNotes = (raw, legacyContent) => {
+    const out = [];
+    for (let i = 0; i < NOTE_COUNT; i++) {
+      const n = Array.isArray(raw) ? raw[i] : null;
+      out.push({
+        content:
+          n && typeof n.content === "string"
+            ? n.content
+            : i === 0 && typeof legacyContent === "string"
+            ? legacyContent
+            : "",
+        name:
+          n && typeof n.name === "string" ? n.name.slice(0, NAME_MAX) : "",
+      });
+    }
+    return out;
+  };
+
+  const renderTabs = () => {
+    tabEls.forEach((tab, i) => {
+      const numEl = tab.querySelector(".note-tab-num");
+      const nameEl = tab.querySelector(".note-tab-name");
+      const name = (notes[i] && notes[i].name) || "";
+      if (numEl) numEl.textContent = String(i + 1);
+      if (nameEl && !tab.classList.contains("renaming")) {
+        nameEl.textContent = name;
+      }
+      tab.classList.toggle("active", i === activeNote);
+      const label = name || `Note ${i + 1}`;
+      tab.setAttribute("data-tooltip", `${label} · Alt+${i + 1}`);
+      tab.setAttribute("aria-label", label);
+      tab.setAttribute("aria-selected", i === activeNote ? "true" : "false");
+    });
+  };
+
+  const renderActiveNote = () => {
+    editor.innerHTML = (notes[activeNote] && notes[activeNote].content) || "";
+    renderTabs();
+    updateWordCount();
+  };
+
+  const switchNote = (index) => {
+    index = ((index % NOTE_COUNT) + NOTE_COUNT) % NOTE_COUNT;
+    if (index === activeNote) {
+      editor.focus();
+      return;
+    }
+    if (notes[activeNote]) notes[activeNote].content = editor.innerHTML;
+    persistNotes();
+    activeNote = index;
+    persistActiveNote();
+    renderActiveNote();
+    editor.focus();
+    sendAnalyticsEvent("note_switched", { note: activeNote + 1 });
+  };
+
+  const cycleNote = (delta) => switchNote(activeNote + delta);
+
+  // Inline rename (double-click or right-click a tab).
+  const beginRename = (index) => {
+    if (renaming) return;
+    renaming = true;
+    const tab = tabEls[index];
+    const nameEl = tab.querySelector(".note-tab-name");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "note-rename-input";
+    input.maxLength = NAME_MAX;
+    input.value = notes[index].name || "";
+    input.placeholder = `Note ${index + 1}`;
+    tab.classList.add("renaming");
+    if (nameEl) nameEl.style.display = "none";
+    tab.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      renaming = false;
+      if (save) {
+        notes[index].name = input.value.trim().slice(0, NAME_MAX);
+        persistNotes();
+      }
+      input.remove();
+      tab.classList.remove("renaming");
+      if (nameEl) nameEl.style.display = "";
+      renderTabs();
+    };
+
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation(); // don't trigger note shortcuts while typing a name
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finish(true);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        finish(false);
+      }
+    });
+    input.addEventListener("blur", () => finish(true));
+  };
+
+  // Wire tab / arrow / keyboard controls.
+  tabEls.forEach((tab, i) => {
+    tab.addEventListener("click", () => switchNote(i));
+    tab.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      beginRename(i);
+    });
+  });
+  if (prevNoteBtn) prevNoteBtn.addEventListener("click", () => cycleNote(-1));
+  if (nextNoteBtn) nextNoteBtn.addEventListener("click", () => cycleNote(1));
+
+  document.addEventListener("keydown", (e) => {
+    if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    // Match on e.code, not e.key: on macOS Option+1 yields the character "¡",
+    // so e.key would be "¡" while e.code stays "Digit1".
+    switch (e.code) {
+      case "Digit1":
+        switchNote(0);
+        e.preventDefault();
+        break;
+      case "Digit2":
+        switchNote(1);
+        e.preventDefault();
+        break;
+      case "Digit3":
+        switchNote(2);
+        e.preventDefault();
+        break;
+      case "ArrowLeft":
+        cycleNote(-1);
+        e.preventDefault();
+        break;
+      case "ArrowRight":
+        cycleNote(1);
+        e.preventDefault();
+        break;
+    }
+  });
 
   // Check if migration is needed and perform if necessary
   chrome.storage.local.get("migrationComplete", (result) => {
@@ -93,10 +326,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load saved content and preferences
   const loadContentAndPreferences = () => {
     chrome.storage.local.get(
-      ["content", "theme", "fontSize", "spellCheck", "lineHeight"],
+      [
+        "content",
+        "theme",
+        "fontSize",
+        "spellCheck",
+        "lineHeight",
+        "textSize",
+        "editorFont",
+        "plainPaste",
+        "wordCount",
+        "notes",
+        "activeNote",
+      ],
       (result) => {
-        if (result.content) {
-          editor.innerHTML = result.content;
+        // Notes: use stored slots, or migrate the legacy single note into slot 1.
+        const migratingNotes = !Array.isArray(result.notes);
+        notes = normalizeNotes(result.notes, result.content);
+        activeNote = Number.isInteger(result.activeNote)
+          ? Math.min(Math.max(result.activeNote, 0), NOTE_COUNT - 1)
+          : 0;
+        renderActiveNote();
+        if (migratingNotes) {
+          // First run under multi-note: persist the new shape. The legacy
+          // `content` key is intentionally left untouched as a backup.
+          persistNotes();
+          persistActiveNote();
         }
         if (result.theme) {
           document.body.classList.remove("dark-mode", "light-mode");
@@ -106,26 +361,24 @@ document.addEventListener("DOMContentLoaded", () => {
           } else if (result.theme === "light") {
             document.body.classList.add("light-mode");
             lightRadio.checked = true;
-          } else {
+          } else if (systemRadio) {
             systemRadio.checked = true;
           }
         }
-        if (result.fontSize) {
-          editor.style.fontSize = `${result.fontSize}px`;
-          fontSizeSlider.value = result.fontSize;
-          fontSizeValue.textContent = `${result.fontSize}px`;
-        }
-        if (result.lineHeight) {
-          editor.style.lineHeight = `${result.lineHeight}px`;
-          lineHeightSlider.value = result.lineHeight;
-          lineHeightValue.textContent = `${result.lineHeight}px`;
-        }
+        applyTextSize(resolveTextSize(result));
+        applyEditorFont(result.editorFont || "sans");
         if (result.spellCheck !== undefined) {
           spellCheckCheckbox.checked = result.spellCheck;
           editor.setAttribute("spellcheck", result.spellCheck);
         } else {
           editor.setAttribute("spellcheck", true);
         }
+        // Plain-text paste is the default; users can opt out.
+        plainPasteEnabled = result.plainPaste !== false;
+        if (plainPasteCheckbox) plainPasteCheckbox.checked = plainPasteEnabled;
+        wordCountEnabled = result.wordCount === true;
+        if (wordCountCheckbox) wordCountCheckbox.checked = wordCountEnabled;
+        updateWordCount();
       }
     );
   };
@@ -146,13 +399,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Save content function
+  // Save content function — writes into the active note slot.
   const saveContent = async () => {
     const content = editor.innerHTML;
-    chrome.storage.local.set({ content }, async () => {
-      console.log("Content saved");
-
-      // Track content length or number of notes (if you have separate note structure)
+    if (notes[activeNote]) notes[activeNote].content = content;
+    chrome.storage.local.set({ notes }, async () => {
       const contentLength = content.length;
       await sendAnalyticsEvent("content_saved", {
         content_length: contentLength,
@@ -327,25 +578,65 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Update font size storage
-  fontSizeSlider.addEventListener("input", () => {
-    const fontSize = fontSizeSlider.value;
-    editor.style.fontSize = `${fontSize}px`;
-    fontSizeValue.textContent = `${fontSize}px`;
-    chrome.storage.local.set({ fontSize: fontSize }, () => {
-      console.log("Font size saved:", fontSize);
+  // Update text size storage
+  textSizeRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const size = document.querySelector(
+        'input[name="text-size"]:checked'
+      ).value;
+      applyTextSize(size);
+      chrome.storage.local.set({ textSize: size }, () => {
+        console.log("Text size saved:", size);
+      });
+      sendAnalyticsEvent("setting_changed", {
+        setting: "textSize",
+        value: `text size: ${size}`,
+      });
     });
   });
 
-  // Update line height storage
-  lineHeightSlider.addEventListener("input", () => {
-    const lineHeight = lineHeightSlider.value;
-    editor.style.lineHeight = `${lineHeight}px`;
-    lineHeightValue.textContent = `${lineHeight}px`;
-    chrome.storage.local.set({ lineHeight: lineHeight }, () => {
-      console.log("Line height saved:", lineHeight);
+  // Update editor font storage
+  editorFontRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const font = document.querySelector(
+        'input[name="editor-font"]:checked'
+      ).value;
+      applyEditorFont(font);
+      chrome.storage.local.set({ editorFont: font });
+      sendAnalyticsEvent("setting_changed", {
+        setting: "editorFont",
+        value: `editor font: ${font}`,
+      });
     });
   });
+
+  // Paste as plain text
+  if (plainPasteCheckbox) {
+    plainPasteCheckbox.addEventListener("change", () => {
+      plainPasteEnabled = plainPasteCheckbox.checked;
+      chrome.storage.local.set({ plainPaste: plainPasteEnabled });
+    });
+  }
+
+  editor.addEventListener("paste", (event) => {
+    if (!plainPasteEnabled) return;
+    event.preventDefault();
+    const text = (event.clipboardData || window.clipboardData).getData(
+      "text/plain"
+    );
+    document.execCommand("insertText", false, text);
+  });
+
+  // Word count
+  if (wordCountCheckbox) {
+    wordCountCheckbox.addEventListener("change", () => {
+      wordCountEnabled = wordCountCheckbox.checked;
+      chrome.storage.local.set({ wordCount: wordCountEnabled });
+      updateWordCount();
+    });
+  }
+
+  editor.addEventListener("input", updateWordCount);
 
   // Load saved spell check preference
   chrome.storage.local.get(["spellCheck"], (result) => {
@@ -362,21 +653,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const spellCheckEnabled = spellCheckCheckbox.checked;
     editor.setAttribute("spellcheck", spellCheckEnabled);
     chrome.storage.local.set({ spellCheck: spellCheckEnabled });
-  });
-
-  // Load saved footer visibility preference and adjust the UI accordingly
-  chrome.storage.local.get(["footerVisible"], (result) => {
-    const footerVisible =
-      result.footerVisible !== undefined ? result.footerVisible : true;
-    footerToggleCheckbox.checked = !footerVisible;
-    footerElement.style.display = footerVisible ? "flex" : "none";
-  });
-
-  // Save footer visibility preference when the checkbox is toggled
-  footerToggleCheckbox.addEventListener("change", () => {
-    const footerVisible = !footerToggleCheckbox.checked;
-    footerElement.style.display = footerVisible ? "flex" : "none";
-    chrome.storage.local.set({ footerVisible: footerVisible });
   });
 
   // Track page view
@@ -396,20 +672,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // });
 
   // Track settings changes
-  fontSizeSlider.addEventListener("change", () => {
-    sendAnalyticsEvent("setting_changed", {
-      setting: "fontSize",
-      value: `font size: ${fontSizeSlider.value}`,
-    });
-  });
-
-  lineHeightSlider.addEventListener("change", () => {
-    sendAnalyticsEvent("setting_changed", {
-      setting: "lineHeight",
-      value: `line height: ${lineHeightSlider.value}`,
-    });
-  });
-
   spellCheckCheckbox.addEventListener("change", () => {
     sendAnalyticsEvent("setting_changed", {
       setting: "spellCheck",
