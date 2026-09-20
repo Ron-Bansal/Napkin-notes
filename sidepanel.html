@@ -7,76 +7,26 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
 
-  <body>
+  <body class="light-mode">
     <div class="top-banner">
       <div class="logo-wrapper">
         <img src="/assets/icon128.png" alt="Napkin Notes logo" />
         <div class="logo-header-wrapper">
           <h2>Napkin Notes</h2>
-          <p class="thin">canvas for thought</p>
+          <p class="thin">quickest canvas for thought</p>
         </div>
       </div>
 
-      <button id="help-button">?</button>
+      <!-- <button id="help-button">?</button> -->
+      <button id="help-button">
+        <img src="./assets/menu.svg" alt="menu" />
+      </button>
     </div>
     <div id="editor" contenteditable="true"></div>
 
-    <footer id="app-footer">
-      <div class="footer-content">
-        <div class="footer-text">
-          <div class="footer-text-r1">
-            <p>Try using</p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Alt</span>
-              <span class="shortcut-key">X</span>
-            </div>
-          </div>
-          <p>to open the side panel</p>
-        </div>
-        <div class="footer-icon-buttons">
-          <a
-            href="mailto:raunaqbansal11@gmail.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="ga-track-link"
-            data-ga-category="footer"
-            data-ga-action="click"
-            data-ga-label="feedback"
-          >
-            <button class="icon-btn" data-tooltip="Feedback">
-              <img src="./assets/feedback.svg" alt="feedback-message-icon" />
-            </button>
-          </a>
-
-          <a
-            href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="ga-track-link"
-            data-ga-category="footer"
-            data-ga-action="click"
-            data-ga-label="rate"
-          >
-            <button class="icon-btn" data-tooltip="Rate">
-              <img src="./assets/rate.svg" alt="rate-star-icon" />
-            </button>
-          </a>
-
-          <a
-            href="https://ko-fi.com/raunaq"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="ga-track-link"
-            data-ga-category="footer"
-            data-ga-action="click"
-            data-ga-label="tip"
-          >
-            <button class="icon-btn" data-tooltip="Buy me a Coffee">
-              <img src="./assets/coffee.svg" alt="coffee-tip-icon" />
-            </button>
-          </a>
-        </div>
-      </div>
+    <footer id="app-footer" class="status-bar">
+      <span id="word-count" class="status-left"></span>
+      <span id="save-status" class="status-right">Auto-saved</span>
     </footer>
 
     <!-- <footer>
@@ -85,235 +35,154 @@
 
     <div id="modal" class="modal">
       <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <div class="modal-header">
-          <h3>Napkin <span>| side panel notes</span></h3>
+        <div class="sheet-header">
+          <h3>Settings</h3>
+          <button class="close-button" aria-label="Close">&times;</button>
         </div>
-        <p class="modal-tagline">
-          Capture fleeting thoughts - always just a click away!
-        </p>
-        <!-- <hr /> -->
-        <h4>Shortcuts and Markdown</h4>
-        <div class="shortcuts-wrapper">
-          <div class="shortcut-row">
-            <p>
-              Open side panel
-              <!-- <span
-                ><a
-                  href="chrome://extensions/shortcuts"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="customise-shortcut-link"
-                  >[Customise↗]</a
-                ></span> -->
-            </p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Alt</span>
-              <span class="shortcut-key">X</span>
+
+        <div class="settings-group">
+          <div class="setting-row">
+            <span class="setting-label">Theme</span>
+            <div class="segmented segmented-theme">
+              <input type="radio" name="theme" id="system" value="system" aria-label="System" />
+              <label for="system" title="System">
+                <svg class="seg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+                <span class="seg-name">System</span>
+              </label>
+              <input type="radio" name="theme" id="light" value="light" checked aria-label="Light" />
+              <label for="light" title="Light">
+                <svg class="seg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+                <span class="seg-name">Light</span>
+              </label>
+              <input type="radio" name="theme" id="dark" value="dark" aria-label="Dark" />
+              <label for="dark" title="Dark">
+                <svg class="seg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 7 7 0 1 0 20 14.5z"/></svg>
+                <span class="seg-name">Dark</span>
+              </label>
             </div>
           </div>
-          <div class="shortcut-row">
-            <p>Insert section divider</p>
-            <div class="shortcut-keys-wrapper">
-              <span
-                class="shortcut-key"
-                style="font-size: 1rem; letter-spacing: 1px"
-                >---</span
-              >
+          <div class="setting-row">
+            <span class="setting-label">Font style</span>
+            <div class="segmented segmented-font">
+              <input type="radio" name="editor-font" id="font-sans" value="sans" checked aria-label="Sans" />
+              <label for="font-sans" class="ff-sans" title="Sans"><span class="seg-glyph">Aa</span><span class="seg-name">Sans</span></label>
+              <input type="radio" name="editor-font" id="font-serif" value="serif" aria-label="Serif" />
+              <label for="font-serif" class="ff-serif" title="Serif"><span class="seg-glyph">Aa</span><span class="seg-name">Serif</span></label>
+              <input type="radio" name="editor-font" id="font-mono" value="mono" aria-label="Mono" />
+              <label for="font-mono" class="ff-mono" title="Mono"><span class="seg-glyph">Aa</span><span class="seg-name">Mono</span></label>
             </div>
           </div>
-          <div class="shortcut-row">
-            <p class="new-feature-badge">Insert section header</p>
-            <div class="shortcut-keys-wrapper">
-              <span
-                class="shortcut-key"
-                style="font-size: 1rem; letter-spacing: 1px"
-                >!!!</span
-              >
-              <span
-                class="-key"
-                style="font-size: 0.8rem; letter-spacing: -0.1px"
-                ><em>text</em></span
-              >
-              <span
-                class="shortcut-key"
-                style="font-size: 1rem; letter-spacing: 1px"
-                >!!!</span
-              >
+          <div class="setting-row">
+            <span class="setting-label">Text size</span>
+            <div class="segmented segmented-sm">
+              <input type="radio" name="text-size" id="size-small" value="small" aria-label="Small" />
+              <label for="size-small" title="Small">S</label>
+              <input type="radio" name="text-size" id="size-medium" value="medium" checked aria-label="Medium" />
+              <label for="size-medium" title="Medium">M</label>
+              <input type="radio" name="text-size" id="size-large" value="large" aria-label="Large" />
+              <label for="size-large" title="Large">L</label>
             </div>
-          </div>
-          <div class="shortcut-row">
-            <p>Bold and color text green</p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Ctrl</span>
-              <span class="shortcut-key">B</span>
-            </div>
-          </div>
-          <div class="shortcut-row">
-            <p class="new-feature-badge beta-badge">
-              Underline and color text red
-            </p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Ctrl</span>
-              <span class="shortcut-key">U</span>
-            </div>
-          </div>
-          <div class="shortcut-row">
-            <p class="new-feature-badge">Italics and highlight</p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Ctrl</span>
-              <span class="shortcut-key">I</span>
-            </div>
-          </div>
-          <div class="shortcut-row">
-            <p>Strikethrough</p>
-            <div class="shortcut-keys-wrapper">
-              <span class="shortcut-key">Alt</span>
-              <span class="shortcut-key">Shift</span>
-              <span class="shortcut-key">S</span>
-            </div>
-          </div>
-        </div>
-        <h4>Preferences</h4>
-        <div class="mode-wrapper">
-          <div class="theme-toggle">
-            <input type="radio" name="theme" id="light" value="light" checked />
-            <label for="light">Light Mode</label>
-            <input type="radio" name="theme" id="dark" value="dark" />
-            <label for="dark">Dark Mode</label>
           </div>
         </div>
 
-        <div class="slider-wrapper">
-          <p class="option-label">Font size:</p>
-          <input
-            type="range"
-            id="font-size-slider"
-            min="10"
-            max="25"
-            value="17"
-          />
-          <div class="value-display">
-            <span id="font-size-value">16px</span>
-          </div>
-        </div>
-        <div class="slider-wrapper">
-          <p class="option-label">Line height:</p>
-          <input
-            type="range"
-            id="line-height-slider"
-            min="10"
-            max="35"
-            value="25"
-          />
-          <div class="value-display">
-            <span id="line-height-value">18px</span>
-          </div>
-        </div>
-
-        <div class="options-wrapper">
-          <div class="switch-wrapper">
-            <p class="option-label">Spell check:</p>
+        <div class="settings-group">
+          <div class="setting-row">
+            <span class="setting-label">
+              Spell check
+              <span class="setting-hint">Underline misspelled words</span>
+            </span>
             <label class="switch">
               <input type="checkbox" id="spell-check" checked />
               <span class="slider"></span>
             </label>
           </div>
-          <div class="switch-wrapper">
-            <p class="option-label">Hide footer:</p>
+          <div class="setting-row">
+            <span class="setting-label">
+              Paste as plain text
+              <span class="setting-hint">Strip formatting from pasted text</span>
+            </span>
             <label class="switch">
-              <input type="checkbox" id="footer-toggle" unchecked />
+              <input type="checkbox" id="plain-paste" checked />
               <span class="slider"></span>
             </label>
           </div>
-          <!-- <div class="switch-wrapper">
-            <p class="option-label">Analytics opt-in: (soon)</p>
+          <div class="setting-row">
+            <span class="setting-label">
+              Word count
+              <span class="setting-hint">Show a live count in the status bar</span>
+            </span>
             <label class="switch">
-              <input type="checkbox" id="analytics-opt-in" checked />
+              <input type="checkbox" id="word-count-toggle" />
               <span class="slider"></span>
             </label>
-          </div> -->
-        </div>
-        <h4>Support</h4>
-        <div class="support-wrapper">
-          <div class="support-row-1">
-            <a
-              href="mailto:raunaqbansal11@gmail.com"
-              class="support-item ga-track-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-ga-category="support_modal"
-              data-ga-action="click"
-              data-ga-label="feedback"
-            >
-              <img src="./assets/feedback.svg" alt="feedback-message-icon" />
-              <div class="support-content">
-                <div class="support-title">Feedback</div>
-                <div class="support-tagline">
-                  Feature requests? Bug fixes? I'm all ears!
-                </div>
-              </div>
-            </a>
-            <a
-              href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki"
-              class="support-item ga-track-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-ga-category="support_modal"
-              data-ga-action="click"
-              data-ga-label="rate"
-            >
-              <img src="./assets/rate.svg" alt="rate-star-icon" />
-              <div class="support-content">
-                <div class="support-title">Rate</div>
-                <div class="support-tagline">
-                  Enjoying Napkin? Let others know :)
-                </div>
-              </div>
-            </a>
           </div>
-          <a
-            href="https://ko-fi.com/raunaq"
-            class="support-item ga-track-link"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-ga-category="support_modal"
-            data-ga-action="click"
-            data-ga-label="tip"
-          >
-            <img src="./assets/coffee.svg" alt="coffee-tip-icon" />
-            <div class="support-content">
-              <div class="support-title">Buy Me a Coffee</div>
-              <!-- <div class="support-tagline">
-                Feeling Generous? No obligation for tips but I'm always grateful!
-              </div> -->
-              <div class="support-tagline">
-                Feeling Generous? Always greatly appreciated but there's no
-                obligation to tip!
-              </div>
-            </div>
-          </a>
         </div>
 
-        <!-- <p class="social-cta">
-          Follow me on
+        <details class="settings-group shortcuts-disclosure">
+          <summary>Formatting &amp; shortcuts</summary>
+          <div class="shortcut-list">
+            <div class="shortcut-row">
+              <span>Section header</span>
+              <div class="keys">
+                <kbd>!!!</kbd><span class="kbd-note">text</span><kbd>!!!</kbd>
+              </div>
+            </div>
+            <div class="shortcut-row">
+              <span>Section divider</span>
+              <div class="keys"><kbd>---</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Bold &amp; green</span>
+              <div class="keys"><kbd>Ctrl</kbd><kbd>B</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Italic &amp; highlight</span>
+              <div class="keys"><kbd>Ctrl</kbd><kbd>I</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Underline &amp; red</span>
+              <div class="keys"><kbd>Ctrl</kbd><kbd>U</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Strikethrough</span>
+              <div class="keys"><kbd>Alt</kbd><kbd>Shift</kbd><kbd>S</kbd></div>
+            </div>
+            <div class="shortcut-row">
+              <span>Open panel</span>
+              <div class="keys"><kbd>Alt</kbd><kbd>X</kbd></div>
+            </div>
+          </div>
+        </details>
+
+        <div class="sheet-footer">
           <a
-            href="https://x.com/raunvq"
+            href="mailto:raunaqbansal11@gmail.com"
             target="_blank"
             rel="noopener noreferrer"
-            >x.com/raunvq</a
+            class="ga-track-link"
+            data-ga-category="settings"
+            data-ga-action="click"
+            data-ga-label="feedback"
+            >Send feedback</a
           >
-          for tips and updates :)
-        </p> -->
-        <p class="privacy-policy-link">
+          <a
+            href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="ga-track-link"
+            data-ga-category="settings"
+            data-ga-action="click"
+            data-ga-label="rate"
+            >Rate Napkin</a
+          >
+          <span class="spacer"></span>
           <a
             href="chrome-extension://fffkmnaimkmiaedcbblphnjbilpdidnk/privacy-policy.html"
             target="_blank"
             rel="noopener noreferrer"
+            >Privacy</a
           >
-            Privacy Policy
-          </a>
-        </p>
+        </div>
       </div>
     </div>
 

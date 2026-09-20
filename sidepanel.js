@@ -26,14 +26,72 @@ document.addEventListener("DOMContentLoaded", () => {
   const systemRadio = document.getElementById("system");
   const lightRadio = document.getElementById("light");
   const darkRadio = document.getElementById("dark");
-  const fontSizeSlider = document.getElementById("font-size-slider");
-  const fontSizeValue = document.getElementById("font-size-value");
-  const lineHeightSlider = document.getElementById("line-height-slider");
-  const lineHeightValue = document.getElementById("line-height-value");
+  const textSizeRadios = document.querySelectorAll('input[name="text-size"]');
+  const editorFontRadios = document.querySelectorAll('input[name="editor-font"]');
   const spellCheckCheckbox = document.getElementById("spell-check");
-  const footerToggleCheckbox = document.getElementById("footer-toggle");
-  const footerElement = document.getElementById("app-footer");
-  const analyticsOptIn = document.getElementById("analytics-opt-in");
+  const plainPasteCheckbox = document.getElementById("plain-paste");
+  const wordCountCheckbox = document.getElementById("word-count-toggle");
+  const wordCountEl = document.getElementById("word-count");
+
+  // Text size presets — line height is derived from the chosen size so the
+  // two never drift out of proportion (replaces the old font/line sliders).
+  const TEXT_SIZES = {
+    small: { font: 13, line: 1.5 },
+    medium: { font: 15, line: 1.6 },
+    large: { font: 17, line: 1.7 },
+  };
+
+  const applyTextSize = (size) => {
+    const cfg = TEXT_SIZES[size] || TEXT_SIZES.medium;
+    editor.style.fontSize = `${cfg.font}px`;
+    editor.style.lineHeight = `${cfg.line}`;
+    textSizeRadios.forEach((radio) => {
+      radio.checked = radio.value === size;
+    });
+  };
+
+  // Prefer the new textSize preference; otherwise migrate the old numeric
+  // fontSize into the nearest bucket so existing users keep their setting.
+  const resolveTextSize = (result) => {
+    if (result.textSize && TEXT_SIZES[result.textSize]) return result.textSize;
+    if (result.fontSize) {
+      const n = parseInt(result.fontSize, 10);
+      if (n <= 13) return "small";
+      if (n >= 17) return "large";
+      return "medium";
+    }
+    return "medium";
+  };
+
+  // Editor font presets (system stacks — no extra fonts to load).
+  const EDITOR_FONTS = {
+    sans: '"Inter", "Segoe UI", system-ui, -apple-system, sans-serif',
+    serif: '"Iowan Old Style", Palatino, Georgia, "Times New Roman", serif',
+    mono: 'ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace',
+  };
+
+  const applyEditorFont = (font) => {
+    const stack = EDITOR_FONTS[font] || EDITOR_FONTS.sans;
+    editor.style.fontFamily = stack;
+    editorFontRadios.forEach((radio) => {
+      radio.checked = radio.value === font;
+    });
+  };
+
+  // Whether pasted content is stripped to plain text (set from storage below).
+  let plainPasteEnabled = false;
+  let wordCountEnabled = false;
+
+  const updateWordCount = () => {
+    if (!wordCountEl) return;
+    if (!wordCountEnabled) {
+      wordCountEl.textContent = "";
+      return;
+    }
+    const text = editor.textContent.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    wordCountEl.textContent = `${words} ${words === 1 ? "word" : "words"}`;
+  };
 
   // Check if migration is needed and perform if necessary
   chrome.storage.local.get("migrationComplete", (result) => {
@@ -93,7 +151,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load saved content and preferences
   const loadContentAndPreferences = () => {
     chrome.storage.local.get(
-      ["content", "theme", "fontSize", "spellCheck", "lineHeight"],
+      [
+        "content",
+        "theme",
+        "fontSize",
+        "spellCheck",
+        "lineHeight",
+        "textSize",
+        "editorFont",
+        "plainPaste",
+        "wordCount",
+      ],
       (result) => {
         if (result.content) {
           editor.innerHTML = result.content;
@@ -106,26 +174,24 @@ document.addEventListener("DOMContentLoaded", () => {
           } else if (result.theme === "light") {
             document.body.classList.add("light-mode");
             lightRadio.checked = true;
-          } else {
+          } else if (systemRadio) {
             systemRadio.checked = true;
           }
         }
-        if (result.fontSize) {
-          editor.style.fontSize = `${result.fontSize}px`;
-          fontSizeSlider.value = result.fontSize;
-          fontSizeValue.textContent = `${result.fontSize}px`;
-        }
-        if (result.lineHeight) {
-          editor.style.lineHeight = `${result.lineHeight}px`;
-          lineHeightSlider.value = result.lineHeight;
-          lineHeightValue.textContent = `${result.lineHeight}px`;
-        }
+        applyTextSize(resolveTextSize(result));
+        applyEditorFont(result.editorFont || "sans");
         if (result.spellCheck !== undefined) {
           spellCheckCheckbox.checked = result.spellCheck;
           editor.setAttribute("spellcheck", result.spellCheck);
         } else {
           editor.setAttribute("spellcheck", true);
         }
+        // Plain-text paste is the default; users can opt out.
+        plainPasteEnabled = result.plainPaste !== false;
+        if (plainPasteCheckbox) plainPasteCheckbox.checked = plainPasteEnabled;
+        wordCountEnabled = result.wordCount === true;
+        if (wordCountCheckbox) wordCountCheckbox.checked = wordCountEnabled;
+        updateWordCount();
       }
     );
   };
@@ -327,25 +393,65 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Update font size storage
-  fontSizeSlider.addEventListener("input", () => {
-    const fontSize = fontSizeSlider.value;
-    editor.style.fontSize = `${fontSize}px`;
-    fontSizeValue.textContent = `${fontSize}px`;
-    chrome.storage.local.set({ fontSize: fontSize }, () => {
-      console.log("Font size saved:", fontSize);
+  // Update text size storage
+  textSizeRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const size = document.querySelector(
+        'input[name="text-size"]:checked'
+      ).value;
+      applyTextSize(size);
+      chrome.storage.local.set({ textSize: size }, () => {
+        console.log("Text size saved:", size);
+      });
+      sendAnalyticsEvent("setting_changed", {
+        setting: "textSize",
+        value: `text size: ${size}`,
+      });
     });
   });
 
-  // Update line height storage
-  lineHeightSlider.addEventListener("input", () => {
-    const lineHeight = lineHeightSlider.value;
-    editor.style.lineHeight = `${lineHeight}px`;
-    lineHeightValue.textContent = `${lineHeight}px`;
-    chrome.storage.local.set({ lineHeight: lineHeight }, () => {
-      console.log("Line height saved:", lineHeight);
+  // Update editor font storage
+  editorFontRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const font = document.querySelector(
+        'input[name="editor-font"]:checked'
+      ).value;
+      applyEditorFont(font);
+      chrome.storage.local.set({ editorFont: font });
+      sendAnalyticsEvent("setting_changed", {
+        setting: "editorFont",
+        value: `editor font: ${font}`,
+      });
     });
   });
+
+  // Paste as plain text
+  if (plainPasteCheckbox) {
+    plainPasteCheckbox.addEventListener("change", () => {
+      plainPasteEnabled = plainPasteCheckbox.checked;
+      chrome.storage.local.set({ plainPaste: plainPasteEnabled });
+    });
+  }
+
+  editor.addEventListener("paste", (event) => {
+    if (!plainPasteEnabled) return;
+    event.preventDefault();
+    const text = (event.clipboardData || window.clipboardData).getData(
+      "text/plain"
+    );
+    document.execCommand("insertText", false, text);
+  });
+
+  // Word count
+  if (wordCountCheckbox) {
+    wordCountCheckbox.addEventListener("change", () => {
+      wordCountEnabled = wordCountCheckbox.checked;
+      chrome.storage.local.set({ wordCount: wordCountEnabled });
+      updateWordCount();
+    });
+  }
+
+  editor.addEventListener("input", updateWordCount);
 
   // Load saved spell check preference
   chrome.storage.local.get(["spellCheck"], (result) => {
@@ -362,21 +468,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const spellCheckEnabled = spellCheckCheckbox.checked;
     editor.setAttribute("spellcheck", spellCheckEnabled);
     chrome.storage.local.set({ spellCheck: spellCheckEnabled });
-  });
-
-  // Load saved footer visibility preference and adjust the UI accordingly
-  chrome.storage.local.get(["footerVisible"], (result) => {
-    const footerVisible =
-      result.footerVisible !== undefined ? result.footerVisible : true;
-    footerToggleCheckbox.checked = !footerVisible;
-    footerElement.style.display = footerVisible ? "flex" : "none";
-  });
-
-  // Save footer visibility preference when the checkbox is toggled
-  footerToggleCheckbox.addEventListener("change", () => {
-    const footerVisible = !footerToggleCheckbox.checked;
-    footerElement.style.display = footerVisible ? "flex" : "none";
-    chrome.storage.local.set({ footerVisible: footerVisible });
   });
 
   // Track page view
@@ -396,20 +487,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // });
 
   // Track settings changes
-  fontSizeSlider.addEventListener("change", () => {
-    sendAnalyticsEvent("setting_changed", {
-      setting: "fontSize",
-      value: `font size: ${fontSizeSlider.value}`,
-    });
-  });
-
-  lineHeightSlider.addEventListener("change", () => {
-    sendAnalyticsEvent("setting_changed", {
-      setting: "lineHeight",
-      value: `line height: ${lineHeightSlider.value}`,
-    });
-  });
-
   spellCheckCheckbox.addEventListener("change", () => {
     sendAnalyticsEvent("setting_changed", {
       setting: "spellCheck",
