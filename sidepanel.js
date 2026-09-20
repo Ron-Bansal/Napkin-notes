@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const plainPasteCheckbox = document.getElementById("plain-paste");
   const wordCountCheckbox = document.getElementById("word-count-toggle");
   const wordCountEl = document.getElementById("word-count");
+  const saveStatusEl = document.getElementById("save-status");
 
   // Text size presets — line height is derived from the chosen size so the
   // two never drift out of proportion (replaces the old font/line sliders).
@@ -90,7 +91,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const text = editor.textContent.trim();
     const words = text ? text.split(/\s+/).length : 0;
-    wordCountEl.textContent = `${words} ${words === 1 ? "word" : "words"}`;
+    // Comma-group thousands (e.g. 1,234 words).
+    wordCountEl.textContent = `${words.toLocaleString()} ${
+      words === 1 ? "word" : "words"
+    }`;
+  };
+
+  // Save indicator — appears on first edit, shows "Saving…" then settles on
+  // "Saved" a beat after typing stops (so it doesn't flicker on every keystroke).
+  let saveIdleTimer;
+  const markSaving = () => {
+    if (!saveStatusEl) return;
+    saveStatusEl.classList.add("visible", "saving");
+    saveStatusEl.classList.remove("saved");
+    saveStatusEl.textContent = "Saving…";
+    clearTimeout(saveIdleTimer);
+    saveIdleTimer = setTimeout(() => {
+      saveStatusEl.classList.remove("saving");
+      saveStatusEl.classList.add("saved");
+      saveStatusEl.textContent = "Saved";
+    }, 500);
   };
 
   // -------------------------------------------------------------------------
@@ -407,6 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveContent = async () => {
     const content = editor.innerHTML;
     if (notes[activeNote]) notes[activeNote].content = content;
+    markSaving();
     chrome.storage.local.set({ notes }, async () => {
       const contentLength = content.length;
       await sendAnalyticsEvent("content_saved", {

@@ -267,6 +267,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 /* A single segmented track holds the three slots (matches the settings pills) */
@@ -314,7 +316,7 @@ body {
 }
 
 .note-tab-name {
-  max-width: 84px;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -358,7 +360,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -421,9 +422,9 @@ body {
 .note-tabs [data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   left: 50%;
-  transform: translateX(-50%) translateY(2px);
+  transform: translateX(-50%) translateY(-2px);
   background-color: var(--text);
   color: var(--bg);
   font-size: 11px;
@@ -492,35 +493,61 @@ mark {
   text-decoration: none;
 }
 
-/* ---------- Status bar ---------------------------------------------------- */
+/* ---------- Status bar (tabs left · save + word count right) -------------- */
 .status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--sp-2);
   padding: 0 var(--sp-1);
   font-size: 11px;
   color: var(--text-muted);
-  min-height: 14px;
 }
 
-.status-left {
-  font-variant-numeric: tabular-nums;
-}
-
-.status-right {
+.status-meta {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-left: auto;
-  opacity: 0.75;
+  gap: var(--sp-3);
+  flex-shrink: 0;
 }
 
-.status-right::before {
+/* Save indicator: hidden until the first edit, amber while saving, green idle */
+.save-status {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.save-status.visible {
+  display: inline-flex;
+  opacity: 0.8;
+}
+
+.save-status::before {
   content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background-color: var(--text-muted);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.save-status.saving::before {
+  background-color: #e0a63a;
+}
+
+.save-status.saved::before {
   background-color: var(--accent);
+}
+
+.word-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.word-count:empty {
+  display: none;
 }
 
 /* ---------- Settings sheet ------------------------------------------------ */
