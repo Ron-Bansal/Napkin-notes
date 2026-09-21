@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentSpellcheck = true;
   let plainPasteEnabled = true;
   let wordCountEnabled = false;
+  let saveDebounceTimer = null;
 
   // ---- Appearance --------------------------------------------------------
   const TEXT_SIZES = {
@@ -87,19 +88,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }`;
   };
 
-  // ---- Save indicator ----------------------------------------------------
-  let saveIdleTimer;
-  const markSaving = () => {
+  // ---- Save indicator (Saving… / Saved / Couldn't save) ------------------
+  const setSaveStatus = (state) => {
     if (!saveStatusEl) return;
-    saveStatusEl.classList.add("visible", "saving");
-    saveStatusEl.classList.remove("saved");
-    saveStatusEl.textContent = "Saving…";
-    clearTimeout(saveIdleTimer);
-    saveIdleTimer = setTimeout(() => {
-      saveStatusEl.classList.remove("saving");
+    saveStatusEl.classList.add("visible");
+    saveStatusEl.classList.remove("saving", "saved", "error");
+    if (state === "saving") {
+      saveStatusEl.classList.add("saving");
+      saveStatusEl.textContent = "Saving…";
+    } else if (state === "error") {
+      saveStatusEl.classList.add("error");
+      saveStatusEl.textContent = "Couldn't save";
+    } else {
       saveStatusEl.classList.add("saved");
       saveStatusEl.textContent = "Saved";
-    }, 500);
+    }
   };
 
   // ---- Notes (three fixed slots) -----------------------------------------
@@ -120,8 +123,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const persistNotes = () => {
     try {
-      chrome.storage.local.set({ notes });
-    } catch (e) {}
+      chrome.storage.local.set({ notes }, () => {
+        if (chrome.runtime.lastError) setSaveStatus("error");
+      });
+    } catch (e) {
+      setSaveStatus("error");
+    }
   };
   const persistActiveNote = () => {
     try {
@@ -187,6 +194,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tipEditor) tipEditor.commands.focus();
       return;
     }
+    // Flush any pending debounced save into the outgoing note before switching.
+    clearTimeout(saveDebounceTimer);
     if (notes[activeNote] && tipEditor) {
       notes[activeNote].content = tipEditor.getHTML();
     }
@@ -294,17 +303,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ---- Save ---------------------------------------------------------------
-  const saveActiveNote = () => {
+  // ---- Save (debounced; writes are checked for failure) -------------------
+  const flushSave = () => {
     if (!tipEditor) return;
     const content = tipEditor.getHTML();
     if (notes[activeNote]) notes[activeNote].content = content;
-    markSaving();
     try {
       chrome.storage.local.set({ notes }, () => {
-        sendAnalyticsEvent("content_saved", { content_length: content.length });
+        if (chrome.runtime.lastError) {
+          setSaveStatus("error");
+        } else {
+          setSaveStatus("saved");
+          sendAnalyticsEvent("content_saved", {
+            content_length: content.length,
+          });
+        }
       });
-    } catch (e) {}
+    } catch (e) {
+      setSaveStatus("error");
+    }
+  };
+
+  const saveActiveNote = () => {
+    if (!tipEditor) return;
+    // Keep the in-memory note current immediately so a switch never loses text;
+    // the storage write itself is debounced to avoid churn on every keystroke.
+    if (notes[activeNote]) notes[activeNote].content = tipEditor.getHTML();
+    setSaveStatus("saving");
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(flushSave, 400);
   };
 
   // ---- Editor bootstrap ---------------------------------------------------
@@ -453,23 +480,6 @@ document.addEventListener("DOMContentLoaded", () => {
           persistActiveNote();
         }
 
-        // Rich-text (TipTap) migration — runs once.
-        if (!result[RICH_FLAG]) {
-          const hadContent = notes.some((n) => n.content && n.content.trim());
-          if (hadContent) {
-            backupNotesOnce(chrome.storage.local, notes, () => {});
-            notes = notes.map((n) => ({
-              content: migrateLegacyHTML(n.content),
-              name: n.name,
-            }));
-            persistNotes();
-          }
-          try {
-            chrome.storage.local.set({ [RICH_FLAG]: true });
-          } catch (e) {}
-          if (hadContent) showUpgradeNotice();
-        }
-
         // Theme
         if (result.theme) {
           document.body.classList.remove("dark-mode", "light-mode");
@@ -497,8 +507,43 @@ document.addEventListener("DOMContentLoaded", () => {
         wordCountEnabled = result.wordCount === true;
         if (wordCountCheckbox) wordCountCheckbox.checked = wordCountEnabled;
 
-        initEditor();
-        revealRestoreIfBackup();
+        const finishLoad = () => {
+          initEditor();
+          revealRestoreIfBackup();
+        };
+
+        // Rich-text (TipTap) migration — runs once, and only AFTER a backup of
+        // the originals is safely written. If the backup can't be written, we
+        // do not migrate over the originals (and surface a save error).
+        if (result[RICH_FLAG]) {
+          finishLoad();
+          return;
+        }
+        const hadContent = notes.some((n) => n.content && n.content.trim());
+        if (!hadContent) {
+          try {
+            chrome.storage.local.set({ [RICH_FLAG]: true });
+          } catch (e) {}
+          finishLoad();
+          return;
+        }
+        backupNotesOnce(chrome.storage.local, notes, (ok) => {
+          if (ok) {
+            notes = notes.map((n) => ({
+              content: migrateLegacyHTML(n.content),
+              name: n.name,
+            }));
+            persistNotes();
+            try {
+              chrome.storage.local.set({ [RICH_FLAG]: true });
+            } catch (e) {}
+            showUpgradeNotice();
+          } else {
+            // Couldn't back up — keep originals untouched; retry on next load.
+            setSaveStatus("error");
+          }
+          finishLoad();
+        });
       }
     );
   };

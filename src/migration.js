@@ -11,12 +11,14 @@ export function migrateLegacyHTML(html) {
   return out;
 }
 
-// One-time backup of every note's pre-migration content, keyed so it can be
-// restored later. Returns true if a backup was written.
+// One-time backup of every note's pre-migration content. Calls done(true) once
+// a backup is safely in place (either already present, or freshly written), and
+// done(false) only if the write itself failed — so the caller can refuse to
+// migrate over originals it couldn't back up.
 export function backupNotesOnce(local, notes, done) {
   local.get(["notesBackupV3"], (res) => {
     if (res && res.notesBackupV3) {
-      done(false);
+      done(true); // a backup already exists — safe to proceed
       return;
     }
     const snapshot = {
@@ -26,6 +28,12 @@ export function backupNotesOnce(local, notes, done) {
         name: (n && n.name) || "",
       })),
     };
-    local.set({ notesBackupV3: snapshot }, () => done(true));
+    local.set({ notesBackupV3: snapshot }, () => {
+      const err =
+        typeof chrome !== "undefined" &&
+        chrome.runtime &&
+        chrome.runtime.lastError;
+      done(!err);
+    });
   });
 }

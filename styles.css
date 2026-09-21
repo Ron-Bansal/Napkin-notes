@@ -620,6 +620,15 @@ mark {
   background-color: var(--accent);
 }
 
+.save-status.error {
+  color: var(--danger);
+  opacity: 1;
+}
+
+.save-status.error::before {
+  background-color: var(--danger);
+}
+
 .word-count {
   font-variant-numeric: tabular-nums;
 }
