@@ -195,11 +195,11 @@
             href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki/reviews"
             target="_blank"
             rel="noopener noreferrer"
-            class="ga-track-link"
+            class="ga-track-link rate-cta"
             data-ga-category="settings"
             data-ga-action="click"
             data-ga-label="rate"
-            >Rate ★</a
+            >Rate Napkin</a
           >
           <a
             href="mailto:raunaqbansal11@gmail.com"
@@ -209,7 +209,7 @@
             data-ga-category="settings"
             data-ga-action="click"
             data-ga-label="feedback"
-            >Feedback</a
+            >Give feedback</a
           >
           <span class="spacer"></span>
           <a
@@ -220,7 +220,7 @@
             data-ga-category="settings"
             data-ga-action="click"
             data-ga-label="tip"
-            >Tip ❤</a
+            >(Optional) Tip developer ♥︎</a
           >
         </div>
       </div>
@@ -242,8 +242,13 @@
     </div>
 
     <div id="review-prompt" class="review-prompt">
-      <span class="review-text" id="review-text"></span>
-      <div class="review-actions" id="review-actions"></div>
+      <span class="review-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.7 6.1 6.6.6-5 4.4 1.5 6.5L12 17.3 6.2 20.6l1.5-6.5-5-4.4 6.6-.6z"/></svg>
+      </span>
+      <div class="review-body">
+        <span class="review-text" id="review-text"></span>
+        <div class="review-actions" id="review-actions"></div>
+      </div>
       <button class="review-close" id="review-close" aria-label="Dismiss">&times;</button>
     </div>
 

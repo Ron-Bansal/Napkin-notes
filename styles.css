@@ -1004,9 +1004,10 @@ kbd,
 .sheet-footer {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  margin-top: var(--sp-2);
-  padding-top: var(--sp-3);
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  margin-top: var(--sp-1);
+  padding-top: var(--sp-2);
 }
 
 .sheet-footer a {
@@ -1017,6 +1018,26 @@ kbd,
 
 .sheet-footer a:hover {
   color: var(--accent);
+}
+
+/* Primary CTA: Rate Napkin */
+.sheet-footer .rate-cta {
+  color: #ffffff;
+  background-color: var(--accent);
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  font-weight: 500;
+  transition: background-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.sheet-footer .rate-cta:hover {
+  color: #ffffff;
+  background-color: var(--accent-strong);
+}
+
+.sheet-footer .rate-cta:active {
+  transform: scale(0.96);
 }
 
 .sheet-footer .spacer {
@@ -1208,7 +1229,7 @@ a {
   gap: var(--sp-2);
 }
 
-/* ---------- Review prompt (slim, dismissible bar) ------------------------ */
+/* ---------- Review prompt (dismissible toast) ---------------------------- */
 .review-prompt {
   display: none;
   position: fixed;
@@ -1216,12 +1237,12 @@ a {
   right: var(--sp-3);
   bottom: var(--sp-3);
   z-index: 150;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 9px 10px 9px 14px;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-md);
   animation: sheetIn 0.24s var(--ease);
 }
@@ -1230,24 +1251,51 @@ a {
   display: flex;
 }
 
-.review-text {
+.review-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--accent-weak-bg);
+  color: var(--accent-strong);
+  margin-top: 1px;
+}
+
+.review-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.review-body {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.review-text {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
   color: var(--text);
 }
 
 .review-actions {
-  display: inline-flex;
-  gap: var(--sp-1);
-  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }
 
 .review-btn {
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 5px 10px;
+  padding: 6px 12px;
   border-radius: var(--r-pill);
   cursor: pointer;
   white-space: nowrap;

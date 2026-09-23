@@ -467,8 +467,8 @@ document.addEventListener("DOMContentLoaded", () => {
     renderReviewStep("Enjoying Napkin?", [
       reviewButton("Not really", false, () => {
         sendAnalyticsEvent("review_prompt", { step: "negative" });
-        renderReviewStep("Sorry to hear it — what'd make it better?", [
-          reviewButton("Send feedback", true, () => {
+        renderReviewStep("Sorry to hear that — what could be better?", [
+          reviewButton("Give feedback", true, () => {
             window.open(REVIEW.feedbackUrl, "_blank");
             setReviewDone();
             hideReview();
@@ -478,10 +478,10 @@ document.addEventListener("DOMContentLoaded", () => {
       reviewButton("Yes!", true, () => {
         sendAnalyticsEvent("review_prompt", { step: "positive" });
         renderReviewStep(
-          "Glad to hear it 🙏  A quick rating really helps a solo dev.",
+          "Great to hear! A quick rating on the store helps others find it.",
           [
             reviewButton("Maybe later", false, hideReview),
-            reviewButton("Rate ★", true, () => {
+            reviewButton("Rate Napkin", true, () => {
               window.open(REVIEW.reviewsUrl, "_blank");
               setReviewDone();
               hideReview();
