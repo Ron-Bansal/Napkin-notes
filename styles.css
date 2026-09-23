@@ -1011,7 +1011,7 @@ kbd,
 }
 
 .sheet-footer a {
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--text-muted);
   transition: color var(--dur) var(--ease);
 }
@@ -1020,10 +1020,9 @@ kbd,
   color: var(--accent);
 }
 
-/* Rate Napkin — green text (not a button) */
+/* Rate Napkin — green text (not a button, not bold) */
 .sheet-footer .rate-cta {
   color: var(--accent);
-  font-weight: 600;
 }
 
 .sheet-footer .rate-cta:hover {
@@ -1219,33 +1218,31 @@ a {
   gap: var(--sp-2);
 }
 
-/* ---------- Review prompt (full-width bottom bar) ------------------------ */
+/* ---------- Review prompt (inset toast card) ----------------------------- */
 .review-prompt {
   display: none;
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  bottom: var(--sp-3);
   z-index: 150;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
+  gap: var(--sp-2);
+  padding: 8px 8px 8px var(--sp-4);
   background-color: var(--surface);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -8px 24px rgba(16, 24, 32, 0.1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
   animation: reviewUp 0.26s var(--ease);
-}
-
-body.dark-mode .review-prompt,
-body:not(.light-mode) .review-prompt {
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes reviewUp {
   from {
-    transform: translateY(100%);
+    opacity: 0;
+    transform: translateY(12px);
   }
   to {
+    opacity: 1;
     transform: translateY(0);
   }
 }
@@ -1259,28 +1256,31 @@ body:not(.light-mode) .review-prompt {
   min-width: 0;
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.35;
   color: var(--text);
 }
 
 .review-actions {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-1);
   flex-shrink: 0;
 }
 
-/* Ghost = quiet text button; primary = green text button. No pills. */
+/* Secondary = quiet text button; primary = solid green pill. */
 .review-btn {
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 4px 2px;
+  padding: 6px 8px;
   border: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--dur) var(--ease);
+  border-radius: var(--r-pill);
+  transition: color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .review-btn:hover {
@@ -1288,19 +1288,24 @@ body:not(.light-mode) .review-prompt {
 }
 
 .review-btn.primary {
-  color: var(--accent);
-  font-weight: 600;
+  padding: 6px 14px;
+  background-color: var(--accent);
+  color: #ffffff;
 }
 
 .review-btn.primary:hover {
-  color: var(--accent-strong);
+  color: #ffffff;
+  background-color: var(--accent-strong);
+}
+
+.review-btn.primary:active {
+  transform: scale(0.96);
 }
 
 .review-close {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  margin-left: var(--sp-1);
+  width: 24px;
+  height: 24px;
   border: 0;
   background: transparent;
   color: var(--text-muted);
