@@ -1020,24 +1020,14 @@ kbd,
   color: var(--accent);
 }
 
-/* Primary CTA: Rate Napkin */
+/* Rate Napkin — green text (not a button) */
 .sheet-footer .rate-cta {
-  color: #ffffff;
-  background-color: var(--accent);
-  padding: 5px 12px;
-  border-radius: var(--r-pill);
-  font-weight: 500;
-  transition: background-color var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .sheet-footer .rate-cta:hover {
-  color: #ffffff;
-  background-color: var(--accent-strong);
-}
-
-.sheet-footer .rate-cta:active {
-  transform: scale(0.96);
+  color: var(--accent-strong);
 }
 
 .sheet-footer .spacer {
@@ -1229,109 +1219,92 @@ a {
   gap: var(--sp-2);
 }
 
-/* ---------- Review prompt (dismissible toast) ---------------------------- */
+/* ---------- Review prompt (full-width bottom bar) ------------------------ */
 .review-prompt {
   display: none;
   position: fixed;
-  left: var(--sp-3);
-  right: var(--sp-3);
-  bottom: var(--sp-3);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 150;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
-  animation: sheetIn 0.24s var(--ease);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 24px rgba(16, 24, 32, 0.1);
+  animation: reviewUp 0.26s var(--ease);
+}
+
+body.dark-mode .review-prompt,
+body:not(.light-mode) .review-prompt {
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes reviewUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .review-prompt.show {
   display: flex;
 }
 
-.review-icon {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: var(--accent-weak-bg);
-  color: var(--accent-strong);
-  margin-top: 1px;
-}
-
-.review-icon svg {
-  width: 15px;
-  height: 15px;
-  display: block;
-}
-
-.review-body {
+.review-text {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.review-text {
   font-size: 13px;
   font-weight: 500;
-  line-height: 1.4;
   color: var(--text);
 }
 
 .review-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  align-items: center;
   gap: var(--sp-2);
+  flex-shrink: 0;
 }
 
+/* Ghost = quiet text button; primary = green text button. No pills. */
 .review-btn {
   font-family: var(--font);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 6px 12px;
-  border-radius: var(--r-pill);
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
-  border: 1px solid var(--border-strong);
-  background-color: transparent;
-  color: var(--text);
-  transition: background-color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease);
 }
 
 .review-btn:hover {
-  background-color: var(--surface-2);
+  color: var(--text);
 }
 
 .review-btn.primary {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .review-btn.primary:hover {
-  background-color: var(--accent-strong);
-}
-
-.review-btn:active {
-  transform: scale(0.95);
+  color: var(--accent-strong);
 }
 
 .review-close {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
+  margin-left: var(--sp-1);
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
   border-radius: var(--r-pill);
