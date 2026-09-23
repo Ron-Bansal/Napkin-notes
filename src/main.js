@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentSpellcheck = true;
   let plainPasteEnabled = true;
   let wordCountEnabled = false;
+  let saveDebounceTimer = null;
 
   // ---- Appearance --------------------------------------------------------
   const TEXT_SIZES = {
@@ -87,19 +88,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }`;
   };
 
-  // ---- Save indicator ----------------------------------------------------
-  let saveIdleTimer;
-  const markSaving = () => {
+  // ---- Save indicator (Saving… / Saved / Couldn't save) ------------------
+  const setSaveStatus = (state) => {
     if (!saveStatusEl) return;
-    saveStatusEl.classList.add("visible", "saving");
-    saveStatusEl.classList.remove("saved");
-    saveStatusEl.textContent = "Saving…";
-    clearTimeout(saveIdleTimer);
-    saveIdleTimer = setTimeout(() => {
-      saveStatusEl.classList.remove("saving");
+    saveStatusEl.classList.add("visible");
+    saveStatusEl.classList.remove("saving", "saved", "error");
+    if (state === "saving") {
+      saveStatusEl.classList.add("saving");
+      saveStatusEl.textContent = "Saving…";
+    } else if (state === "error") {
+      saveStatusEl.classList.add("error");
+      saveStatusEl.textContent = "Couldn't save";
+    } else {
       saveStatusEl.classList.add("saved");
       saveStatusEl.textContent = "Saved";
-    }, 500);
+    }
   };
 
   // ---- Notes (three fixed slots) -----------------------------------------
@@ -120,8 +123,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const persistNotes = () => {
     try {
-      chrome.storage.local.set({ notes });
-    } catch (e) {}
+      chrome.storage.local.set({ notes }, () => {
+        if (chrome.runtime.lastError) setSaveStatus("error");
+      });
+    } catch (e) {
+      setSaveStatus("error");
+    }
   };
   const persistActiveNote = () => {
     try {
@@ -187,6 +194,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tipEditor) tipEditor.commands.focus();
       return;
     }
+    // Flush any pending debounced save into the outgoing note before switching.
+    clearTimeout(saveDebounceTimer);
     if (notes[activeNote] && tipEditor) {
       notes[activeNote].content = tipEditor.getHTML();
     }
@@ -294,17 +303,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ---- Save ---------------------------------------------------------------
-  const saveActiveNote = () => {
+  // ---- Save (debounced; writes are checked for failure) -------------------
+  const flushSave = () => {
     if (!tipEditor) return;
     const content = tipEditor.getHTML();
     if (notes[activeNote]) notes[activeNote].content = content;
-    markSaving();
     try {
       chrome.storage.local.set({ notes }, () => {
-        sendAnalyticsEvent("content_saved", { content_length: content.length });
+        if (chrome.runtime.lastError) {
+          setSaveStatus("error");
+        } else {
+          setSaveStatus("saved");
+          sendAnalyticsEvent("content_saved", {
+            content_length: content.length,
+          });
+        }
       });
-    } catch (e) {}
+    } catch (e) {
+      setSaveStatus("error");
+    }
+  };
+
+  const saveActiveNote = () => {
+    if (!tipEditor) return;
+    // Keep the in-memory note current immediately so a switch never loses text;
+    // the storage write itself is debounced to avoid churn on every keystroke.
+    if (notes[activeNote]) notes[activeNote].content = tipEditor.getHTML();
+    setSaveStatus("saving");
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(flushSave, 400);
   };
 
   // ---- Editor bootstrap ---------------------------------------------------
@@ -401,6 +428,99 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ---- Review prompt (two-step fork; earned trigger; capped at 3 asks) -----
+  const REVIEW = {
+    reviewsUrl:
+      "https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki/reviews",
+    feedbackUrl: "mailto:raunaqbansal11@gmail.com",
+    firstAskSessions: 6,
+    cooldownMs: 45 * 24 * 60 * 60 * 1000,
+    maxAsks: 3,
+  };
+  const reviewEl = document.getElementById("review-prompt");
+  const reviewTextEl = document.getElementById("review-text");
+  const reviewActionsEl = document.getElementById("review-actions");
+  const reviewCloseEl = document.getElementById("review-close");
+
+  const hideReview = () => {
+    if (reviewEl) reviewEl.classList.remove("show");
+  };
+  const setReviewDone = () => {
+    try {
+      chrome.storage.local.set({ reviewState: "done" });
+    } catch (e) {}
+  };
+  const reviewButton = (label, primary, onClick) => {
+    const b = document.createElement("button");
+    b.className = "review-btn" + (primary ? " primary" : "");
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  };
+  const renderReviewStep = (text, buttons) => {
+    if (!reviewTextEl || !reviewActionsEl) return;
+    reviewTextEl.textContent = text;
+    reviewActionsEl.innerHTML = "";
+    buttons.forEach((b) => reviewActionsEl.appendChild(b));
+  };
+  const showReviewStep1 = () => {
+    renderReviewStep("Enjoying Napkin?", [
+      reviewButton("Not really", false, () => {
+        sendAnalyticsEvent("review_prompt", { step: "negative" });
+        renderReviewStep("Sorry to hear that — what could be better?", [
+          reviewButton("Give feedback", true, () => {
+            window.open(REVIEW.feedbackUrl, "_blank");
+            setReviewDone();
+            hideReview();
+          }),
+        ]);
+      }),
+      reviewButton("Yes!", true, () => {
+        sendAnalyticsEvent("review_prompt", { step: "positive" });
+        renderReviewStep(
+          "Great to hear! A quick rating on the store helps others find it.",
+          [
+            reviewButton("Maybe later", false, hideReview),
+            reviewButton("Rate Napkin", true, () => {
+              window.open(REVIEW.reviewsUrl, "_blank");
+              setReviewDone();
+              hideReview();
+            }),
+          ]
+        );
+      }),
+    ]);
+    if (reviewEl) reviewEl.classList.add("show");
+  };
+  if (reviewCloseEl) reviewCloseEl.addEventListener("click", hideReview);
+
+  const maybeShowReview = (store, sessionCount) => {
+    if (!reviewEl) return;
+    if ((store.reviewState || "none") === "done") return;
+    if ((store.reviewAsks || 0) >= REVIEW.maxAsks) return;
+    if (sessionCount < REVIEW.firstAskSessions) return;
+    const last = store.reviewLastAskedAt || 0;
+    if (last && Date.now() - last < REVIEW.cooldownMs) return;
+    // Never stack on the upgrade notice.
+    const up = document.getElementById("upgrade-notice");
+    if (up && up.classList.contains("show")) return;
+    // Only ask users who've gotten value — a real note exists.
+    const hasValue = notes.some(
+      (n) => (n.content || "").replace(/<[^>]+>/g, "").trim().length > 40
+    );
+    if (!hasValue) return;
+    // Record the ask now; surface after a short beat so it doesn't slam in.
+    try {
+      chrome.storage.local.set({
+        reviewAsks: (store.reviewAsks || 0) + 1,
+        reviewLastAskedAt: Date.now(),
+        reviewState: "later",
+      });
+    } catch (e) {}
+    sendAnalyticsEvent("review_prompt", { step: "shown" });
+    setTimeout(showReviewStep1, 1200);
+  };
+
   // ---- Storage migration (sync -> local) then load -----------------------
   chrome.storage.local.get("migrationComplete", (result) => {
     if (!result.migrationComplete) {
@@ -441,6 +561,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "notes",
         "activeNote",
         RICH_FLAG,
+        "sessionCount",
+        "reviewState",
+        "reviewAsks",
+        "reviewLastAskedAt",
       ],
       (result) => {
         const migratingNotes = !Array.isArray(result.notes);
@@ -451,23 +575,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (migratingNotes) {
           persistNotes();
           persistActiveNote();
-        }
-
-        // Rich-text (TipTap) migration — runs once.
-        if (!result[RICH_FLAG]) {
-          const hadContent = notes.some((n) => n.content && n.content.trim());
-          if (hadContent) {
-            backupNotesOnce(chrome.storage.local, notes, () => {});
-            notes = notes.map((n) => ({
-              content: migrateLegacyHTML(n.content),
-              name: n.name,
-            }));
-            persistNotes();
-          }
-          try {
-            chrome.storage.local.set({ [RICH_FLAG]: true });
-          } catch (e) {}
-          if (hadContent) showUpgradeNotice();
         }
 
         // Theme
@@ -497,8 +604,49 @@ document.addEventListener("DOMContentLoaded", () => {
         wordCountEnabled = result.wordCount === true;
         if (wordCountCheckbox) wordCountCheckbox.checked = wordCountEnabled;
 
-        initEditor();
-        revealRestoreIfBackup();
+        const finishLoad = () => {
+          initEditor();
+          revealRestoreIfBackup();
+          // Count this session and maybe surface the review prompt.
+          const sessionCount = (result.sessionCount || 0) + 1;
+          try {
+            chrome.storage.local.set({ sessionCount });
+          } catch (e) {}
+          maybeShowReview(result, sessionCount);
+        };
+
+        // Rich-text (TipTap) migration — runs once, and only AFTER a backup of
+        // the originals is safely written. If the backup can't be written, we
+        // do not migrate over the originals (and surface a save error).
+        if (result[RICH_FLAG]) {
+          finishLoad();
+          return;
+        }
+        const hadContent = notes.some((n) => n.content && n.content.trim());
+        if (!hadContent) {
+          try {
+            chrome.storage.local.set({ [RICH_FLAG]: true });
+          } catch (e) {}
+          finishLoad();
+          return;
+        }
+        backupNotesOnce(chrome.storage.local, notes, (ok) => {
+          if (ok) {
+            notes = notes.map((n) => ({
+              content: migrateLegacyHTML(n.content),
+              name: n.name,
+            }));
+            persistNotes();
+            try {
+              chrome.storage.local.set({ [RICH_FLAG]: true });
+            } catch (e) {}
+            showUpgradeNotice();
+          } else {
+            // Couldn't back up — keep originals untouched; retry on next load.
+            setSaveStatus("error");
+          }
+          finishLoad();
+        });
       }
     );
   };
