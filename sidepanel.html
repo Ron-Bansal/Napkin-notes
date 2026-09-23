@@ -192,6 +192,16 @@
 
         <div class="sheet-footer">
           <a
+            href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki/reviews"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="ga-track-link"
+            data-ga-category="settings"
+            data-ga-action="click"
+            data-ga-label="rate"
+            >Rate ★</a
+          >
+          <a
             href="mailto:raunaqbansal11@gmail.com"
             target="_blank"
             rel="noopener noreferrer"
@@ -199,24 +209,18 @@
             data-ga-category="settings"
             data-ga-action="click"
             data-ga-label="feedback"
-            >Send feedback</a
+            >Feedback</a
           >
+          <span class="spacer"></span>
           <a
-            href="https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki"
+            href="https://ko-fi.com/raunaq"
             target="_blank"
             rel="noopener noreferrer"
             class="ga-track-link"
             data-ga-category="settings"
             data-ga-action="click"
-            data-ga-label="rate"
-            >Rate Napkin</a
-          >
-          <span class="spacer"></span>
-          <a
-            href="privacy-policy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Privacy</a
+            data-ga-label="tip"
+            >Tip ❤</a
           >
         </div>
       </div>
@@ -235,6 +239,12 @@
           <button id="upgrade-dismiss" class="btn-primary">Got it</button>
         </div>
       </div>
+    </div>
+
+    <div id="review-prompt" class="review-prompt">
+      <span class="review-text" id="review-text"></span>
+      <div class="review-actions" id="review-actions"></div>
+      <button class="review-close" id="review-close" aria-label="Dismiss">&times;</button>
     </div>
 
     <script src="sidepanel.js"></script>

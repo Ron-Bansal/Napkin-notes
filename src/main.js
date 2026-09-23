@@ -428,6 +428,99 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ---- Review prompt (two-step fork; earned trigger; capped at 3 asks) -----
+  const REVIEW = {
+    reviewsUrl:
+      "https://chromewebstore.google.com/detail/napkin-notes-%E2%80%A2-side-panel/dlhljjkacijknfelknklfcohibfdciki/reviews",
+    feedbackUrl: "mailto:raunaqbansal11@gmail.com",
+    firstAskSessions: 6,
+    cooldownMs: 45 * 24 * 60 * 60 * 1000,
+    maxAsks: 3,
+  };
+  const reviewEl = document.getElementById("review-prompt");
+  const reviewTextEl = document.getElementById("review-text");
+  const reviewActionsEl = document.getElementById("review-actions");
+  const reviewCloseEl = document.getElementById("review-close");
+
+  const hideReview = () => {
+    if (reviewEl) reviewEl.classList.remove("show");
+  };
+  const setReviewDone = () => {
+    try {
+      chrome.storage.local.set({ reviewState: "done" });
+    } catch (e) {}
+  };
+  const reviewButton = (label, primary, onClick) => {
+    const b = document.createElement("button");
+    b.className = "review-btn" + (primary ? " primary" : "");
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  };
+  const renderReviewStep = (text, buttons) => {
+    if (!reviewTextEl || !reviewActionsEl) return;
+    reviewTextEl.textContent = text;
+    reviewActionsEl.innerHTML = "";
+    buttons.forEach((b) => reviewActionsEl.appendChild(b));
+  };
+  const showReviewStep1 = () => {
+    renderReviewStep("Enjoying Napkin?", [
+      reviewButton("Not really", false, () => {
+        sendAnalyticsEvent("review_prompt", { step: "negative" });
+        renderReviewStep("Sorry to hear it — what'd make it better?", [
+          reviewButton("Send feedback", true, () => {
+            window.open(REVIEW.feedbackUrl, "_blank");
+            setReviewDone();
+            hideReview();
+          }),
+        ]);
+      }),
+      reviewButton("Yes!", true, () => {
+        sendAnalyticsEvent("review_prompt", { step: "positive" });
+        renderReviewStep(
+          "Glad to hear it 🙏  A quick rating really helps a solo dev.",
+          [
+            reviewButton("Maybe later", false, hideReview),
+            reviewButton("Rate ★", true, () => {
+              window.open(REVIEW.reviewsUrl, "_blank");
+              setReviewDone();
+              hideReview();
+            }),
+          ]
+        );
+      }),
+    ]);
+    if (reviewEl) reviewEl.classList.add("show");
+  };
+  if (reviewCloseEl) reviewCloseEl.addEventListener("click", hideReview);
+
+  const maybeShowReview = (store, sessionCount) => {
+    if (!reviewEl) return;
+    if ((store.reviewState || "none") === "done") return;
+    if ((store.reviewAsks || 0) >= REVIEW.maxAsks) return;
+    if (sessionCount < REVIEW.firstAskSessions) return;
+    const last = store.reviewLastAskedAt || 0;
+    if (last && Date.now() - last < REVIEW.cooldownMs) return;
+    // Never stack on the upgrade notice.
+    const up = document.getElementById("upgrade-notice");
+    if (up && up.classList.contains("show")) return;
+    // Only ask users who've gotten value — a real note exists.
+    const hasValue = notes.some(
+      (n) => (n.content || "").replace(/<[^>]+>/g, "").trim().length > 40
+    );
+    if (!hasValue) return;
+    // Record the ask now; surface after a short beat so it doesn't slam in.
+    try {
+      chrome.storage.local.set({
+        reviewAsks: (store.reviewAsks || 0) + 1,
+        reviewLastAskedAt: Date.now(),
+        reviewState: "later",
+      });
+    } catch (e) {}
+    sendAnalyticsEvent("review_prompt", { step: "shown" });
+    setTimeout(showReviewStep1, 1200);
+  };
+
   // ---- Storage migration (sync -> local) then load -----------------------
   chrome.storage.local.get("migrationComplete", (result) => {
     if (!result.migrationComplete) {
@@ -468,6 +561,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "notes",
         "activeNote",
         RICH_FLAG,
+        "sessionCount",
+        "reviewState",
+        "reviewAsks",
+        "reviewLastAskedAt",
       ],
       (result) => {
         const migratingNotes = !Array.isArray(result.notes);
@@ -510,6 +607,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const finishLoad = () => {
           initEditor();
           revealRestoreIfBackup();
+          // Count this session and maybe surface the review prompt.
+          const sessionCount = (result.sessionCount || 0) + 1;
+          try {
+            chrome.storage.local.set({ sessionCount });
+          } catch (e) {}
+          maybeShowReview(result, sessionCount);
         };
 
         // Rich-text (TipTap) migration — runs once, and only AFTER a backup of
