@@ -382,7 +382,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const showSplitToggle = () => {
-    if (splitViewToggle && isFullTab()) splitViewToggle.style.display = "";
+    if (!splitViewToggle) return;
+    const full = isFullTab();
+    splitViewToggle.style.display = full ? "" : "none";
+    if (!full && splitActive) exitSplitView();
   };
 
   const updateSplitRadio = () => {
@@ -506,6 +509,8 @@ document.addEventListener("DOMContentLoaded", () => {
           dragging = true;
           startX = e.clientX;
           const panes = splitContainer.querySelectorAll(".split-pane");
+          // Normalize all panes to pixel-based grow values so scales match.
+          panes.forEach((p) => { p.style.flex = `${p.getBoundingClientRect().width} 0 0px`; });
           leftStart = panes[leftIdx].getBoundingClientRect().width;
           rightStart = panes[rightIdx].getBoundingClientRect().width;
           pairTotal = leftStart + rightStart;
@@ -521,14 +526,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const delta = e.clientX - startX;
           const newLeft = Math.max(80, Math.min(pairTotal - 80, leftStart + delta));
           const newRight = pairTotal - newLeft;
-          // Read current ratios, update the two affected panes, reapply all.
-          const cur = getSplitRatios();
-          if (!cur) return;
-          const allWidths = splitContainer.querySelectorAll(".split-pane");
-          const totalW = Array.from(allWidths).reduce((s, p) => s + p.getBoundingClientRect().width, 0);
-          cur[leftIdx] = newLeft / totalW;
-          cur[rightIdx] = newRight / totalW;
-          applySplitRatios(cur);
+          const panes = splitContainer.querySelectorAll(".split-pane");
+          panes[leftIdx].style.flex = `${newLeft} 0 0px`;
+          panes[rightIdx].style.flex = `${newRight} 0 0px`;
         };
 
         const onUp = () => {
@@ -632,12 +632,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleSplit = () => {
     if (splitActive) {
       exitSplitView();
+      sendAnalyticsEvent("split_view_toggled", { active: false });
     } else {
       chrome.storage.local.get("napkinSplitWidths", (res) => {
         enterSplitView(res.napkinSplitWidths);
+        sendAnalyticsEvent("split_view_toggled", { active: true });
       });
     }
-    sendAnalyticsEvent("split_view_toggled", { active: splitActive });
   };
   document.querySelectorAll('input[name="view-mode"]').forEach((radio) => {
     radio.addEventListener("change", () => {
@@ -655,9 +656,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Upgrade notice + restore ------------------------------------------
   const htmlToText = (html) => {
-    const d = document.createElement("div");
-    d.innerHTML = html || "";
-    return d.innerText || d.textContent || "";
+    const doc = new DOMParser().parseFromString(html || "", "text/html");
+    return doc.body.textContent || "";
   };
   const downloadNotesCopy = () => {
     const parts = notes.map(

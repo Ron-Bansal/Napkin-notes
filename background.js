@@ -456,10 +456,9 @@ function probeArcEagerly() {
     if (!tab || tab.id == null) return;
     const isArc = await detectArc(tab.id);
     console.log(LOG, "eager Arc probe ->", isArc);
-    if (typeof isArc === "boolean") {
-      memUsesFallback = isArc;
-      try { chrome.storage.local.set({ [CACHE_KEY]: isArc }); } catch (e) {}
-    }
+    const val = isArc === true;
+    memUsesFallback = val;
+    try { chrome.storage.local.set({ [CACHE_KEY]: val }); } catch (e) {}
   });
 }
 
