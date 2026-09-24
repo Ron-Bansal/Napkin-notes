@@ -231,6 +231,102 @@ body {
   opacity: 0.8;
 }
 
+.banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.banner-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  transition: background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.banner-btn:hover {
+  background-color: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.banner-btn:active {
+  transform: scale(0.94);
+}
+
+.banner-btn.active {
+  background-color: var(--accent-weak-bg);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.banner-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* View mode segmented (banner) — compact version of the settings pill */
+.segmented-view {
+  transform: scale(0.88);
+  transform-origin: right center;
+}
+
+.segmented-view .seg-ico {
+  width: 14px;
+  height: 14px;
+}
+
+.segmented-view label {
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), flex var(--dur) var(--ease);
+}
+
+.segmented-view input[type="radio"]:checked + label .seg-name {
+  margin-left: 4px;
+}
+
+/* Tooltips for banner buttons */
+.banner-actions [data-tooltip] {
+  position: relative;
+}
+
+.banner-actions [data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  background-color: var(--text);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.banner-actions [data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* ---------- Editor -------------------------------------------------------- */
 /* #editor is the scroll container; TipTap mounts .ProseMirror (.np-prose) inside */
 #editor {
@@ -426,6 +522,95 @@ body {
 
 #editor.note-enter {
   animation: noteEnter 0.2s var(--ease);
+}
+
+/* ---------- Split (multi-pane) view --------------------------------------- */
+#split-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 0;
+  animation: splitIn 0.3s var(--ease);
+}
+
+@keyframes splitIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+#split-container .split-pane {
+  flex: 1 1 0;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#split-container .split-pane-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 2px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.split-rename-input {
+  all: unset;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  width: 100%;
+  border-bottom: 1px solid var(--accent);
+}
+
+#split-container .split-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  line-height: 1.7;
+  word-wrap: break-word;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+#split-container .split-editor:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.split-divider {
+  width: 12px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.split-divider::before {
+  content: '';
+  width: 3px;
+  height: 32px;
+  border-radius: 3px;
+  background: rgba(120, 120, 120, 0.25);
+  transition: background 0.18s ease, height 0.18s ease;
+}
+
+.split-divider:hover::before {
+  background: rgba(120, 120, 120, 0.55);
+  height: 48px;
 }
 
 /* Custom tooltips for tabs + arrows (below, so they don't clip at the top) */
@@ -771,11 +956,15 @@ mark {
 .segmented label {
   cursor: pointer;
   text-align: center;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 11px;
   margin: 0;
   border-radius: var(--r-pill);
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.2;
   color: var(--text-muted);
   transition: background-color var(--dur) var(--ease),
     color var(--dur) var(--ease);
@@ -826,12 +1015,6 @@ mark {
 }
 
 /* Theme — icon segments (icon only until active, then icon + label) */
-.segmented-theme label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 11px;
-}
 
 .seg-ico {
   width: 15px;
@@ -847,10 +1030,8 @@ mark {
 
 /* Font style — "Aa" rendered in each face; active adds the name */
 .segmented-font label {
-  display: inline-flex;
   align-items: baseline;
   min-width: 40px;
-  line-height: 1.2;
 }
 
 .segmented-font .seg-glyph {
@@ -878,8 +1059,11 @@ mark {
 /* Text size — S / M / L */
 .segmented-sm label {
   min-width: 30px;
-  padding: 4px 9px;
-  line-height: 1;
+}
+
+/* Open mode — text-only segments, always visible */
+.segmented-open-mode .seg-name {
+  display: inline-block;
 }
 
 /* Toggle switches */
@@ -1161,6 +1345,11 @@ a {
 .btn-primary:active,
 .btn-ghost:active {
   transform: scale(0.96);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11.5px;
 }
 
 #restore-notes {

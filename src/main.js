@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const wordCountCheckbox = document.getElementById("word-count-toggle");
   const wordCountEl = document.getElementById("word-count");
   const saveStatusEl = document.getElementById("save-status");
+  const openModeRadios = document.querySelectorAll('input[name="open-mode"]');
 
   let tipEditor = null;
   let currentSpellcheck = true;
@@ -222,8 +223,10 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.classList.add("renaming");
     if (nameEl) nameEl.style.display = "none";
     tab.appendChild(input);
-    input.focus();
-    input.select();
+    requestAnimationFrame(() => {
+      input.focus();
+      input.select();
+    });
 
     let done = false;
     const finish = (save) => {
@@ -253,9 +256,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   tabEls.forEach((tab, i) => {
-    tab.addEventListener("click", () => switchNote(i));
+    tab.addEventListener("click", () => {
+      if (!renaming) switchNote(i);
+    });
     tab.addEventListener("dblclick", (e) => {
       e.preventDefault();
+      e.stopPropagation();
       beginRename(i);
     });
   });
@@ -305,18 +311,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---- Save (debounced; writes are checked for failure) -------------------
   const flushSave = () => {
-    if (!tipEditor) return;
-    const content = tipEditor.getHTML();
-    if (notes[activeNote]) notes[activeNote].content = content;
+    if (splitActive) {
+      // In split view, all notes are already up to date in the notes array
+      // (saveSplitNote writes content before triggering the debounce).
+    } else {
+      if (!tipEditor) return;
+      const content = tipEditor.getHTML();
+      if (notes[activeNote]) notes[activeNote].content = content;
+    }
     try {
       chrome.storage.local.set({ notes }, () => {
         if (chrome.runtime.lastError) {
           setSaveStatus("error");
         } else {
           setSaveStatus("saved");
-          sendAnalyticsEvent("content_saved", {
-            content_length: content.length,
-          });
         }
       });
     } catch (e) {
@@ -355,11 +363,299 @@ document.addEventListener("DOMContentLoaded", () => {
     playEnterAnim();
   };
 
+  // ---- Split (multi-pane) view -------------------------------------------
+  // Only available when Napkin is open as a full tab (not side panel or iframe).
+  const splitViewToggle = document.getElementById("split-view-toggle");
+  const viewSingleRadio = document.getElementById("view-single");
+  const viewSplitRadio = document.getElementById("view-split");
+  let splitActive = false;
+  let splitEditors = []; // one TipTap instance per pane
+  let splitContainer = null;
+  let splitCleanups = []; // event listener removals
+
+  const isFullTab = () => {
+    try {
+      return window === window.top && window.innerWidth > 600;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const showSplitToggle = () => {
+    if (!splitViewToggle) return;
+    const full = isFullTab();
+    splitViewToggle.style.display = full ? "" : "none";
+    if (!full && splitActive) exitSplitView();
+  };
+
+  const updateSplitRadio = () => {
+    if (viewSingleRadio) viewSingleRadio.checked = !splitActive;
+    if (viewSplitRadio) viewSplitRadio.checked = splitActive;
+  };
+
+  const flushSplitEditors = () => {
+    splitEditors.forEach((ed, i) => {
+      if (ed && notes[i]) notes[i].content = ed.getHTML();
+    });
+  };
+
+  const saveSplitNote = (index) => {
+    if (!splitEditors[index] || !notes[index]) return;
+    notes[index].content = splitEditors[index].getHTML();
+    setSaveStatus("saving");
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(flushSave, 400);
+  };
+
+  // Apply current font/size settings to a split editor element.
+  const applySplitEditorStyle = (el) => {
+    const sizeCfg = TEXT_SIZES[document.querySelector('input[name="text-size"]:checked')?.value] || TEXT_SIZES.medium;
+    el.style.fontSize = `${sizeCfg.font}px`;
+    el.style.lineHeight = `${sizeCfg.line}`;
+    const font = document.querySelector('input[name="editor-font"]:checked')?.value || "sans";
+    el.style.fontFamily = EDITOR_FONTS[font] || EDITOR_FONTS.sans;
+  };
+
+  // Persist and restore split pane widths.
+  const getSplitRatios = () => {
+    if (!splitContainer) return null;
+    const panes = splitContainer.querySelectorAll(".split-pane");
+    const widths = Array.from(panes).map((p) => p.getBoundingClientRect().width);
+    const total = widths.reduce((a, b) => a + b, 0);
+    return total > 0 ? widths.map((w) => w / total) : null;
+  };
+
+  const applySplitRatios = (ratios) => {
+    if (!splitContainer || !ratios) return;
+    const panes = splitContainer.querySelectorAll(".split-pane");
+    panes.forEach((p, i) => { p.style.flex = `${ratios[i]} 0 0px`; });
+  };
+
+  const saveSplitWidths = () => {
+    const ratios = getSplitRatios();
+    if (ratios) {
+      try { chrome.storage.local.set({ napkinSplitWidths: ratios }); } catch (e) {}
+    }
+  };
+
+  const beginSplitRename = (index, labelEl) => {
+    if (renaming) return;
+    renaming = true;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "note-rename-input split-rename-input";
+    input.maxLength = NAME_MAX;
+    input.value = notes[index].name || "";
+    input.placeholder = `Note ${index + 1}`;
+    labelEl.textContent = "";
+    labelEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      renaming = false;
+      if (save) {
+        notes[index].name = input.value.trim().slice(0, NAME_MAX);
+        persistNotes();
+      }
+      input.remove();
+      labelEl.textContent = notes[index].name || `Note ${index + 1}`;
+    };
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); finish(true); }
+      else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener("blur", () => finish(true));
+  };
+
+  const enterSplitView = (savedRatios) => {
+    if (splitActive) return;
+    splitActive = true;
+    updateSplitRadio();
+    try { chrome.storage.local.set({ napkinSplitView: true }); } catch (e) {}
+
+    if (tipEditor && notes[activeNote]) {
+      notes[activeNote].content = tipEditor.getHTML();
+    }
+
+    editorEl.style.display = "none";
+    const footer = document.getElementById("app-footer");
+    if (footer) footer.style.display = "none";
+
+    splitContainer = document.createElement("div");
+    splitContainer.id = "split-container";
+
+    const ratios = (savedRatios && savedRatios.length === NOTE_COUNT)
+      ? savedRatios
+      : Array(NOTE_COUNT).fill(1 / NOTE_COUNT);
+
+    for (let i = 0; i < NOTE_COUNT; i++) {
+      if (i > 0) {
+        const divider = document.createElement("div");
+        divider.className = "split-divider";
+        divider.setAttribute("aria-label", "Resize pane");
+
+        let dragging = false;
+        let startX = 0;
+        let leftIdx = i - 1;
+        let rightIdx = i;
+        let leftStart, rightStart, pairTotal;
+
+        const onDown = (e) => {
+          dragging = true;
+          startX = e.clientX;
+          const panes = splitContainer.querySelectorAll(".split-pane");
+          leftStart = panes[leftIdx].getBoundingClientRect().width;
+          rightStart = panes[rightIdx].getBoundingClientRect().width;
+          pairTotal = leftStart + rightStart;
+          document.body.style.userSelect = "none";
+          splitContainer.querySelectorAll(".split-editor").forEach((el) => {
+            el.style.pointerEvents = "none";
+          });
+          e.preventDefault();
+        };
+
+        const onMove = (e) => {
+          if (!dragging) return;
+          const delta = e.clientX - startX;
+          const newLeft = Math.max(80, Math.min(pairTotal - 80, leftStart + delta));
+          const newRight = pairTotal - newLeft;
+          const panes = splitContainer.querySelectorAll(".split-pane");
+          panes[leftIdx].style.flex = `${newLeft} 0 0px`;
+          panes[rightIdx].style.flex = `${newRight} 0 0px`;
+        };
+
+        const onUp = () => {
+          if (!dragging) return;
+          dragging = false;
+          document.body.style.userSelect = "";
+          splitContainer.querySelectorAll(".split-editor").forEach((el) => {
+            el.style.pointerEvents = "";
+          });
+          saveSplitWidths();
+        };
+
+        divider.addEventListener("pointerdown", onDown);
+        document.addEventListener("pointermove", onMove, true);
+        document.addEventListener("pointerup", onUp, true);
+        splitCleanups.push(() => {
+          document.removeEventListener("pointermove", onMove, true);
+          document.removeEventListener("pointerup", onUp, true);
+        });
+
+        splitContainer.appendChild(divider);
+      }
+
+      const pane = document.createElement("div");
+      pane.className = "split-pane";
+      pane.style.flex = `${ratios[i] * 1000} 0 0px`;
+
+      const label = document.createElement("div");
+      label.className = "split-pane-label";
+      label.textContent = notes[i].name || `Note ${i + 1}`;
+      const idx = i;
+      label.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        beginSplitRename(idx, label);
+      });
+
+      const editorPane = document.createElement("div");
+      editorPane.className = "split-editor";
+      applySplitEditorStyle(editorPane);
+
+      pane.appendChild(label);
+      pane.appendChild(editorPane);
+      splitContainer.appendChild(pane);
+
+      const ed = createEditor({
+        element: editorPane,
+        content: notes[i].content || "",
+        spellcheck: currentSpellcheck,
+        isPlainPaste: () => plainPasteEnabled,
+        onUpdate: () => saveSplitNote(idx),
+      });
+      splitEditors.push(ed);
+    }
+
+    editorEl.parentNode.insertBefore(splitContainer, editorEl);
+  };
+
+  const exitSplitView = () => {
+    if (!splitActive) return;
+    splitActive = false;
+    updateSplitRadio();
+    try { chrome.storage.local.set({ napkinSplitView: false }); } catch (e) {}
+
+    // Save current widths before tearing down.
+    saveSplitWidths();
+
+    // Flush all split editors back to notes.
+    flushSplitEditors();
+    renaming = false;
+    persistNotes();
+
+    // Clean up event listeners.
+    splitCleanups.forEach((fn) => fn());
+    splitCleanups = [];
+
+    // Destroy split editors.
+    splitEditors.forEach((ed) => ed.destroy());
+    splitEditors = [];
+
+    // Remove split container.
+    if (splitContainer) {
+      splitContainer.remove();
+      splitContainer = null;
+    }
+
+    // Restore single editor and footer with a gentle fade.
+    editorEl.style.display = "";
+    editorEl.style.animation = "viewFadeIn 0.25s ease";
+    editorEl.addEventListener("animationend", () => { editorEl.style.animation = ""; }, { once: true });
+    const footer = document.getElementById("app-footer");
+    if (footer) {
+      footer.style.display = "";
+      footer.style.animation = "viewFadeIn 0.25s ease";
+      footer.addEventListener("animationend", () => { footer.style.animation = ""; }, { once: true });
+    }
+
+    // Reload active note into the single editor.
+    renderActiveNote();
+  };
+
+  const toggleSplit = () => {
+    if (splitActive) {
+      exitSplitView();
+      sendAnalyticsEvent("split_view_toggled", { active: false });
+    } else {
+      chrome.storage.local.get("napkinSplitWidths", (res) => {
+        enterSplitView(res.napkinSplitWidths);
+        sendAnalyticsEvent("split_view_toggled", { active: true });
+      });
+    }
+  };
+  document.querySelectorAll('input[name="view-mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const wantSplit = document.querySelector('input[name="view-mode"]:checked')?.value === "split";
+      if (wantSplit !== splitActive) toggleSplit();
+    });
+  });
+
+  showSplitToggle();
+  window.addEventListener("resize", showSplitToggle);
+
+  window.addEventListener("beforeunload", () => {
+    if (splitActive) saveSplitWidths();
+  });
+
   // ---- Upgrade notice + restore ------------------------------------------
   const htmlToText = (html) => {
-    const d = document.createElement("div");
-    d.innerHTML = html || "";
-    return d.innerText || d.textContent || "";
+    const doc = new DOMParser().parseFromString(html || "", "text/html");
+    return doc.body.textContent || "";
   };
   const downloadNotesCopy = () => {
     const parts = notes.map(
@@ -565,6 +861,9 @@ document.addEventListener("DOMContentLoaded", () => {
         "reviewState",
         "reviewAsks",
         "reviewLastAskedAt",
+        "napkinOpenMode",
+        "napkinSplitView",
+        "napkinSplitWidths",
       ],
       (result) => {
         const migratingNotes = !Array.isArray(result.notes);
@@ -598,15 +897,24 @@ document.addEventListener("DOMContentLoaded", () => {
           result.spellCheck !== undefined ? result.spellCheck : true;
         if (spellCheckCheckbox) spellCheckCheckbox.checked = currentSpellcheck;
 
-        plainPasteEnabled = result.plainPaste !== false;
+        plainPasteEnabled = result.plainPaste === true;
         if (plainPasteCheckbox) plainPasteCheckbox.checked = plainPasteEnabled;
 
-        wordCountEnabled = result.wordCount === true;
+        wordCountEnabled = result.wordCount !== false;
         if (wordCountCheckbox) wordCountCheckbox.checked = wordCountEnabled;
+
+        const openMode = result.napkinOpenMode || "auto";
+        openModeRadios.forEach((r) => (r.checked = r.value === openMode));
 
         const finishLoad = () => {
           initEditor();
           revealRestoreIfBackup();
+          // Auto-enter split view in full-tab mode (default on, or remembered).
+          const wantSplit = result.napkinSplitView !== false;
+          if (isFullTab() && wantSplit) {
+            enterSplitView(result.napkinSplitWidths);
+          }
+          updateSplitRadio();
           // Count this session and maybe surface the review prompt.
           const sessionCount = (result.sessionCount || 0) + 1;
           try {
@@ -701,6 +1009,9 @@ document.addEventListener("DOMContentLoaded", () => {
         'input[name="text-size"]:checked'
       ).value;
       applyTextSize(size);
+      if (splitActive && splitContainer) {
+        splitContainer.querySelectorAll(".split-editor").forEach(applySplitEditorStyle);
+      }
       try {
         chrome.storage.local.set({ textSize: size });
       } catch (e) {}
@@ -717,6 +1028,9 @@ document.addEventListener("DOMContentLoaded", () => {
         'input[name="editor-font"]:checked'
       ).value;
       applyEditorFont(font);
+      if (splitActive && splitContainer) {
+        splitContainer.querySelectorAll(".split-editor").forEach(applySplitEditorStyle);
+      }
       try {
         chrome.storage.local.set({ editorFont: font });
       } catch (e) {}
@@ -755,6 +1069,34 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (e) {}
       updateWordCount();
     });
+
+  const openWindowBtn = document.getElementById("open-window-btn");
+  const openTabBtn = document.getElementById("open-tab-btn");
+  const openFullTab = () => {
+    const url = chrome.runtime.getURL("sidepanel.html");
+    chrome.tabs.create({ url });
+    sendAnalyticsEvent("open_window_clicked");
+  };
+  if (openWindowBtn) openWindowBtn.addEventListener("click", openFullTab);
+  if (openTabBtn) {
+    openTabBtn.addEventListener("click", openFullTab);
+    if (!isFullTab()) openTabBtn.style.display = "";
+  }
+
+  openModeRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const mode = document.querySelector('input[name="open-mode"]:checked').value;
+      try {
+        chrome.storage.local.set({ napkinOpenMode: mode });
+        // Clear the Arc-detection cache so auto mode re-probes cleanly.
+        chrome.storage.local.remove("napkinUsesFallback");
+      } catch (e) {}
+      sendAnalyticsEvent("setting_changed", {
+        setting: "openMode",
+        value: `open mode: ${mode}`,
+      });
+    });
+  });
 
   sendAnalyticsEvent("page_view", {
     page_title: document.title,

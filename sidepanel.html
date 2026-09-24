@@ -17,10 +17,26 @@
         </div>
       </div>
 
-      <!-- <button id="help-button">?</button> -->
-      <button id="help-button">
-        <img src="./assets/menu.svg" alt="menu" />
-      </button>
+      <div class="banner-actions">
+        <div id="split-view-toggle" class="segmented segmented-view" style="display: none">
+          <input type="radio" name="view-mode" id="view-single" value="single" checked />
+          <label for="view-single" title="Single note view">
+            <svg class="seg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/></svg>
+            <span class="seg-name">Single</span>
+          </label>
+          <input type="radio" name="view-mode" id="view-split" value="split" />
+          <label for="view-split" title="All notes side by side">
+            <svg class="seg-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            <span class="seg-name">Split</span>
+          </label>
+        </div>
+        <button id="open-tab-btn" class="banner-btn" data-tooltip="Open full page" style="display: none" aria-label="Open in new tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button id="help-button" class="banner-btn" data-tooltip="Settings" aria-label="Settings">
+          <img src="./assets/menu.svg" alt="menu" />
+        </button>
+      </div>
     </div>
     <div id="editor"></div>
 
@@ -57,6 +73,13 @@
         <div class="sheet-header">
           <h3>Settings</h3>
           <button class="close-button" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="settings-group">
+          <div class="setting-row">
+            <span class="setting-label">Open Napkin as a full page</span>
+            <button id="open-window-btn" class="btn-ghost btn-sm">Open notes tab ↗</button>
+          </div>
         </div>
 
         <div class="settings-group">
@@ -102,6 +125,17 @@
               <label for="size-large" title="Large"><span class="seg-abbr">L</span><span class="seg-name">Large</span></label>
             </div>
           </div>
+          <div class="setting-row">
+            <span class="setting-label">Preferred mode</span>
+            <div class="segmented segmented-open-mode">
+              <input type="radio" name="open-mode" id="open-auto" value="auto" checked aria-label="Auto" />
+              <label for="open-auto" title="Side panel when supported, overlay otherwise"><span class="seg-name">Auto</span></label>
+              <input type="radio" name="open-mode" id="open-overlay" value="overlay" aria-label="Overlay" />
+              <label for="open-overlay" title="Slide-in overlay on the page"><span class="seg-name">Overlay</span></label>
+              <input type="radio" name="open-mode" id="open-window" value="window" aria-label="Window" />
+              <label for="open-window" title="Separate popup window"><span class="seg-name">Window</span></label>
+            </div>
+          </div>
         </div>
 
         <div class="settings-group">
@@ -121,7 +155,7 @@
               <span class="setting-hint">Strip formatting from pasted text</span>
             </span>
             <label class="switch">
-              <input type="checkbox" id="plain-paste" checked />
+              <input type="checkbox" id="plain-paste" />
               <span class="slider"></span>
             </label>
           </div>
@@ -131,7 +165,7 @@
               <span class="setting-hint">Show a live count in the status bar</span>
             </span>
             <label class="switch">
-              <input type="checkbox" id="word-count-toggle" />
+              <input type="checkbox" id="word-count-toggle" checked />
               <span class="slider"></span>
             </label>
           </div>

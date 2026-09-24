@@ -26,56 +26,63 @@ const hasNativeSidePanelApi = () =>
   chrome.sidePanel &&
   typeof chrome.sidePanel.open === "function";
 
+// In-memory cache of settings so routeOpen can decide synchronously (required
+// because chrome.sidePanel.open() must be called within the user gesture).
+let memOpenMode = "auto";
+let memUsesFallback = undefined; // true/false/undefined
+
+// Hydrate on service worker start.
+chrome.storage.local.get([CACHE_KEY, "napkinOpenMode"], (res) => {
+  if (res.napkinOpenMode) memOpenMode = res.napkinOpenMode;
+  if (typeof res[CACHE_KEY] === "boolean") memUsesFallback = res[CACHE_KEY];
+  console.log(LOG, "settings hydrated", { memOpenMode, memUsesFallback });
+});
+
+// Keep in sync when settings change from the panel.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes.napkinOpenMode) memOpenMode = changes.napkinOpenMode.newValue || "auto";
+  if (changes[CACHE_KEY]) memUsesFallback = changes[CACHE_KEY].newValue;
+});
+
 // Entry point for both the icon click and the keyboard command.
-async function routeOpen(tab) {
+// MUST stay synchronous through the openNative path so Chrome sees the user gesture.
+function routeOpen(tab) {
   const tabId = tab && tab.id;
-  console.log(LOG, "routeOpen", { tabId, hasNativeApi: hasNativeSidePanelApi() });
+  console.log(LOG, "routeOpen", { tabId, hasNativeApi: hasNativeSidePanelApi(), memOpenMode, memUsesFallback });
 
-  // 1) Use the cached decision when we have one (fast path, no injection).
-  let cached;
-  try {
-    cached = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
-  } catch (e) {
-    cached = undefined;
+  // Explicit modes bypass all detection.
+  if (memOpenMode === "overlay") return openOverlay(tab);
+  if (memOpenMode === "window") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("sidepanel.html") });
+    return;
   }
 
-  if (cached === true) {
+  // --- Auto mode: native when available, overlay on Arc, window as last resort.
+
+  // 1) Use the in-memory cached decision (no async, preserves user gesture).
+  if (memUsesFallback === true) {
     console.log(LOG, "cached -> fallback");
-    return openFallback(tab);
+    return openOverlay(tab);
   }
-  if (cached === false && hasNativeSidePanelApi() && tabId != null) {
+  if (memUsesFallback === false && hasNativeSidePanelApi() && tabId != null) {
     console.log(LOG, "cached -> native");
     return openNative(tab);
   }
 
-  // 2) Unknown: probe the active page to find out whether this is Arc.
-  const isArc = await detectArc(tabId);
-  console.log(LOG, "detectArc ->", isArc);
-
-  if (isArc === true) {
-    try {
-      await chrome.storage.local.set({ [CACHE_KEY]: true });
-    } catch (e) {}
-    return openFallback(tab);
-  }
-
-  if (isArc === false) {
-    if (hasNativeSidePanelApi() && tabId != null) {
-      try {
-        await chrome.storage.local.set({ [CACHE_KEY]: false });
-      } catch (e) {}
-      return openNative(tab);
-    }
-    // Not Arc but no native API either (e.g. some other fork) -> fallback.
-    return openFallback(tab);
-  }
-
-  // 3) Couldn't probe (restricted page, no result). Don't cache. Prefer native
-  //    if the API exists, otherwise fall back.
+  // 2) No cached decision yet. Open overlay first (works everywhere including
+  //    Arc where native silently fails), then probe Arc in background. If the
+  //    probe can't run (restricted page), assume not-Arc so next click uses native.
+  openOverlay(tab);
   if (hasNativeSidePanelApi() && tabId != null) {
-    return openNative(tab);
+    detectArc(tabId).then((isArc) => {
+      console.log(LOG, "detectArc ->", isArc);
+      const val = isArc === true;
+      memUsesFallback = val;
+      try { chrome.storage.local.set({ [CACHE_KEY]: val }); } catch (e) {}
+    });
   }
-  return openFallback(tab);
+  return;
 }
 
 // Runs in the page. Arc exposes `--arc-palette-*` custom properties on the root
@@ -117,20 +124,18 @@ async function detectArc(tabId) {
   }
 }
 
-function openNative(tab) {
+async function openNative(tab) {
   const tabId = tab && tab.id;
-  chrome.sidePanel.open({ tabId }, () => {
-    if (chrome.runtime.lastError) {
-      console.error(LOG, "native open failed:", chrome.runtime.lastError);
-      // If native unexpectedly fails, still give the user a surface.
-      openFallback(tab);
-    } else {
-      console.log(LOG, "native side panel opened");
-    }
-  });
+  try {
+    await chrome.sidePanel.open({ tabId });
+    console.log(LOG, "native side panel opened");
+  } catch (e) {
+    console.error(LOG, "native open failed:", e);
+    openOverlay(tab);
+  }
 }
 
-async function openFallback(tab) {
+async function openOverlay(tab) {
   const tabId = tab && tab.id;
   const url = chrome.runtime.getURL("sidepanel.html");
 
@@ -301,6 +306,8 @@ function toggleNapkinOverlay(iframeUrl, initialWidth, themePref) {
     ".close:active { background: var(--np-hover); }",
     ".close.show { opacity: 1; transform: translateX(0); }",
     ".close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }",
+    ".close::after { content: 'Close panel'; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(2px); background: var(--np-text); color: var(--np-bg); font-family: -apple-system, system-ui, sans-serif; font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 6px; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; z-index: 50; }",
+    ".close:hover::after { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }",
     "@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }",
   ].join("\n");
 
@@ -321,7 +328,6 @@ function toggleNapkinOverlay(iframeUrl, initialWidth, themePref) {
   closeBtn.innerHTML =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   closeBtn.setAttribute("aria-label", "Close Napkin Notes");
-  closeBtn.setAttribute("title", "Close (Esc)");
   closeBtn.addEventListener("click", () => closeOverlay(root));
 
   wrap.appendChild(iframe);
@@ -442,9 +448,46 @@ chrome.action.onClicked.addListener((tab) => {
   }
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log(LOG, "Extension installed");
+// Eagerly probe for Arc on any available tab so the cache is warm before the
+// user's first click. Runs on startup and on install/update.
+function probeArcEagerly() {
+  chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    const tab = tabs && tabs[0];
+    if (!tab || tab.id == null) return;
+    const isArc = await detectArc(tab.id);
+    console.log(LOG, "eager Arc probe ->", isArc);
+    const val = isArc === true;
+    memUsesFallback = val;
+    try { chrome.storage.local.set({ [CACHE_KEY]: val }); } catch (e) {}
+  });
+}
+
+// Probe on service worker start (covers restarts / reloads).
+probeArcEagerly();
+
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log(LOG, "Extension installed:", details.reason);
+  // Re-probe Arc on install/update so the cache is fresh.
+  chrome.storage.local.remove(CACHE_KEY);
+  memUsesFallback = undefined;
+  probeArcEagerly();
+
+  // Right-click context menu on the extension icon.
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "napkin-open-tab",
+      title: "Open in New Tab",
+      contexts: ["action"],
+    });
+  });
+
   sendAnalyticsEvent("extension_installed");
+});
+
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId === "napkin-open-tab") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("sidepanel.html") });
+  }
 });
 
 // Track unhandled errors
