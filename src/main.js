@@ -509,8 +509,6 @@ document.addEventListener("DOMContentLoaded", () => {
           dragging = true;
           startX = e.clientX;
           const panes = splitContainer.querySelectorAll(".split-pane");
-          // Normalize all panes to pixel-based grow values so scales match.
-          panes.forEach((p) => { p.style.flex = `${p.getBoundingClientRect().width} 0 0px`; });
           leftStart = panes[leftIdx].getBoundingClientRect().width;
           rightStart = panes[rightIdx].getBoundingClientRect().width;
           pairTotal = leftStart + rightStart;
@@ -554,7 +552,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const pane = document.createElement("div");
       pane.className = "split-pane";
-      pane.style.flex = `${ratios[i]} 0 0px`;
+      pane.style.flex = `${ratios[i] * 1000} 0 0px`;
 
       const label = document.createElement("div");
       label.className = "split-pane-label";
